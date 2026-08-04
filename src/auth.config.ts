@@ -1,5 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
 
+/** Ensure AUTH_URL is absolute — Vercel env often omits https:// */
+function normalizeAuthUrl() {
+  const raw = process.env.AUTH_URL?.trim();
+  if (!raw) return;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return;
+  process.env.AUTH_URL = `https://${raw}`;
+}
+
+normalizeAuthUrl();
+
 export const authConfig = {
   trustHost: true,
   session: { strategy: "jwt" },
