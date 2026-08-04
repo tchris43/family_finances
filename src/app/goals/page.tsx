@@ -1,0 +1,63 @@
+import { AddGoalForm } from "@/components/add-goal-form";
+import { AppNav } from "@/components/app-nav";
+import { GoalCard } from "@/components/goal-card";
+import { listGoalsWithStats } from "@/lib/goals";
+import { getAvailableToAssignCents } from "@/lib/ledger";
+import { currentMonthKey, formatCents } from "@/lib/money";
+import { requireSession } from "@/lib/session";
+
+export default async function GoalsPage() {
+  const { householdId, db } = await requireSession();
+  const available = await getAvailableToAssignCents(db, householdId);
+  const monthKey = currentMonthKey();
+  const rows = await listGoalsWithStats(db, householdId);
+
+  return (
+    <>
+      <AppNav availableCents={available} />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+        <h1 className="font-serif text-3xl tracking-tight">Goals</h1>
+        <p className="mt-2 text-[var(--muted)]">
+          Longer-term targets. Fund them by assigning Available — spends never
+          move goals.
+        </p>
+
+        <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
+          <p className="text-sm text-[var(--muted)]">Available to Assign</p>
+          <p className="mt-1 font-serif text-3xl tabular-nums">
+            {formatCents(available)}
+          </p>
+        </div>
+
+        <ul className="mt-10 grid gap-4">
+          {rows.length === 0 ? (
+            <li className="text-sm text-[var(--muted)]">
+              No goals yet — add House, Car, Emergency Fund, etc. below.
+            </li>
+          ) : (
+            rows.map(({ goal, stats }) => (
+              <GoalCard
+                key={goal.id}
+                goalId={goal.id}
+                name={goal.name}
+                targetCents={goal.targetCents}
+                targetDate={goal.targetDate}
+                currentCents={stats.currentCents}
+                remainingCents={stats.remainingCents}
+                progressRatio={stats.progressRatio}
+                suggestedMonthlyCents={stats.suggestedMonthlyCents}
+                onTrack={stats.onTrack}
+                estimatedCompletion={stats.estimatedCompletion}
+                monthKey={monthKey}
+              />
+            ))
+          )}
+        </ul>
+
+        <section className="mt-10">
+          <AddGoalForm />
+        </section>
+      </main>
+    </>
+  );
+}

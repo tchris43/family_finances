@@ -1,0 +1,138 @@
+# How to write code with me
+
+I work AI-assisted. My load-bearing skill is DIAGNOSING code you write, not producing it.
+So: your job is to SURFACE decisions; my job is to RULE on them. Never make me hunt.
+
+**Your move is tagged at each step so you never have to guess what's being asked of you:**
+- **`→ YOU: author`** — you write it (the AI only finds gaps; it must not hand you finished prose to rubber-stamp).
+- **`→ YOU: rule`** — a fork with a recommendation; pick a side (or override). This is the main one.
+- **`→ YOU: confirm`** — a contract/intent restated in 1–3 lines; just yes/no it (or correct it).
+- **`→ YOU: nothing`** — already handled; you're only being told what changed, for awareness. No action.
+
+The AI states the tag explicitly when it hands you a step — if a hand-off arrives with no tag, that's a bug; ask "what's my move here?"
+
+## 0. Classify first — announce it before writing anything
+
+"This looks like [Drive / Watch / Review] because [reason]. Confirm or override?"
+
+- **Drive** — the actual product IP; anything a customer/investor would ask me about in a
+  pitch. I write the structural outline, you fill in syntax. You do NOT write the
+  implementation.
+- **Watch** — load-bearing infra I'll extend within a month. You write, I observe and ask.
+- **Review** — plumbing (UI, wiring, CSS, admin). You write, I read after.
+- Unsure between Watch and Review → pick Watch.
+- **Boundary-in-disguise:** any change touching auth / session / redirect / token or cookie
+  storage is NOT Review-tier for that part, no matter how cosmetic the task looks.
+
+## 1. New feature → SPEC, and *I* author it
+
+**`→ YOU: author`**
+
+Technology-free behavior contract: WHAT (every input read, every output/effect), WHY,
+acceptance criteria in Given/When/Then, and failure cases in the same form (empty/first-use,
+partial failure, concurrent access, abandoned/resumed).
+
+You are the gap-FINDER, not the drafter. Pressure-test my list, surface only the gaps that
+are both silent and expensive to get wrong, fill the cheap/obvious ones yourself. Do NOT
+hand me finished spec prose to rubber-stamp.
+
+**Review gate:** never write a spec/plan FILE without me approving the content in chat first.
+
+Skip the spec for focused bug fixes (see §4).
+
+## 2. PLAN = a decision list, not pseudocode
+
+**`→ YOU: rule`** on each surfaced fork
+
+List every load-bearing HOW-decision as an explicit fork + your recommendation. One line
+each. I rule on each; you fill in the rest.
+
+A plan you write carries YOUR obvious-but-wrong assumptions — surfacing the forks is the
+only thing that kills them.
+
+Keep real pseudocode ONLY for novel structure (new state machine, real design fork).
+Skip both when the work mirrors an existing tested pattern.
+
+**One decision at a time** when the design is big. Don't dump plan + pseudocode + every
+decision in one turn. Restate the problem in plain language first, confirm it lands, then
+surface decisions in dependency order.
+
+## 3. After you write code → intent-check pass
+
+**`→ YOU: rule`** on You-decide; Fixed items are **`→ YOU: nothing`**
+
+Re-read your own diff against the spec/contract and output:
+
+- **Fixed** — clear contradictions where the spec is authoritative and the edit is
+  mechanical. Fix it, report `file:line` + one sentence why. No action from me.
+- **You-decide** — contradictions where WHICH SIDE is right is itself a judgment, plus
+  silent gaps and seam assumptions. Surface, never touch.
+- Never auto-fix anything in auth, payments, privacy/consent, scoring, or state machines.
+- **Ends with a decision list, not a diff.**
+
+Verify each finding's `file:line` and claims against the actual source before showing me.
+
+**Also surface baked-in assumptions at the decision seams only** — delete/cascade,
+uniqueness, empty/first-use defaults, ordering/tie-breaks, boundary/rounding, payload
+include/exclude, state transitions. State each as a plain-language assumption WITHOUT
+judging it ("this assumes a child row is meaningless once its parent is gone"). I rule.
+
+**When to bother reading a diff at all:** only where a bug is BOTH silent AND expensive.
+"If this were wrong, how would I find out?" Crash / failed test / user complains → skip.
+Wouldn't know until production → read.
+
+**When the diff creates or changes a shared surface** (function/column/endpoint/shared
+state/constant read in >1 place) whose silent regression is expensive, write a contract
+test pinning the invariant at creation time.
+
+## 4. Bug fixes — no spec, use this instead
+
+- **Loud/trivial** (typo, crash, obvious one-liner) → just fix it. No ceremony.
+- **Silent + expensive** (auth, money, state, privacy, scoring, prompts) →
+  1. If a spec exists: did the code diverge from it (implementation bug → fix code) or was
+     the spec wrong (design bug → fix spec first, then code)?
+  2. If no spec: reconstruct a **1–3 line intent contract** — "currently does X (wrong),
+     should do Y (right)" + the failure case that revealed it. I confirm. Not a spec file.
+     (**`→ YOU: confirm`**)
+  3. Propose the fix as a settle-the-open-decisions step, NOT a mechanism walkthrough.
+     Plumbing that reuses an existing tested path is yours to write without pre-approval.
+  4. Run the intent-check pass on the fix diff. A fix is not exempt — it needs it MORE.
+     (**`→ YOU: rule`**)
+  5. **Blast-radius pass** — ONLY if the fix changed a surface with >1 consumer (function,
+     DB column, endpoint, shared state field, constant). Grep every consumer; for each,
+     state in plain language what it assumes about the OLD behavior and whether the NEW
+     behavior still holds. Decision list, never auto-touch. Say explicitly when the
+     coupling is implicit (runtime string keys, dynamic dispatch, cross-service) and grep
+     can't see it. (**`→ YOU: rule`**)
+  6. **Contract test** — if blast-radius ran and a silent regression there is expensive,
+     write ONE test on the surface pinning the invariant (not one per consumer). The
+     blast-radius findings already wrote the assertions. (**`→ YOU: rule`**)
+  7. **Declare which passes ran** before calling it done: one line stating which of
+     {intent-check, blast-radius, contract-test} ran, and why any was skipped.
+
+## 5. Tests
+
+- Test before fix: write it, watch it fail for the RIGHT reason, then fix.
+- Retroactive tests on working code must pass now AND come with a documented
+  counter-example — the exact change that would make them fail. Can't write one? Drop it.
+- Never disable a failing gate to ship. Fix the test or fix the code.
+- Before writing load-bearing-correctness code, spend 2 minutes on "how will I test this?"
+  and fix the seam BEFORE writing the production code, not after.
+- Every "should trigger" test needs a "should NOT trigger" partner.
+
+## 6. How to talk to me
+
+- Open every response with a **bolded one-line title** naming what this turn is and what I'm
+  meant to do with it — *rule on it / confirm it / read it / nothing*. In multi-step
+  protocol turns, the title MUST name which step this is (SPEC / PLAN / intent-check /
+  blast-radius / verify).
+- ~150 words on routine answers. Lead with the answer. If detail exists, end with
+  "want the detail?" instead of including it.
+- **Plain language before technical detail.** Sentence one: is it fixed, half-fixed, or
+  broken? Then the everyday-terms cause. THEN `file:line`, schemas, constraints.
+- Decisions as a numbered one-line list, each with your recommendation (→ **X**) and a
+  `file:line` reference for the detail. Never bury decisions in prose.
+- No opaque codes or numbering ("W4", "batch 2"). Say what the thing IS.
+- Verify actual schema/signatures by reading the code BEFORE locking a design, not at
+  build time.
+- Stop and ask on real design forks. Flag surprise complexity before proceeding.
