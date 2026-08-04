@@ -24,8 +24,14 @@ export default async function HomePage({
   const session = await auth();
   if (!session?.user) return null;
 
-  const db = getDb();
   const householdId = session.user.householdId;
+  if (!householdId) {
+    throw new Error(
+      "Signed in, but session is missing householdId. Check AUTH_SECRET matches between deploys and re-login.",
+    );
+  }
+
+  const db = getDb();
 
   const [household] = await db
     .select()
