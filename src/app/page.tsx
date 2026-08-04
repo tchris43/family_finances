@@ -62,9 +62,6 @@ export default async function HomePage({
   );
 
   const main = withBalances.find((a) => a.isMain) ?? withBalances[0];
-  const totalCash = withBalances
-    .filter((a) => a.type !== "loan" && a.type !== "credit")
-    .reduce((sum, a) => sum + a.balanceCents, 0);
 
   const query = (q ?? "").trim();
 
@@ -164,7 +161,7 @@ export default async function HomePage({
           hasTransactions={hasTransactions}
         />
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-2">
+        <section className="mt-10">
           <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
             <p className="text-sm text-[var(--muted)]">Available to Assign</p>
             <p className="mt-1 font-serif text-3xl tabular-nums">
@@ -176,12 +173,6 @@ export default async function HomePage({
             >
               Assign on Plan →
             </Link>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
-            <p className="text-sm text-[var(--muted)]">Cash (ex-credit/loans)</p>
-            <p className="mt-1 font-serif text-3xl tabular-nums">
-              {formatCents(totalCash)}
-            </p>
           </div>
         </section>
 

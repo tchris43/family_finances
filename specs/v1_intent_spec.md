@@ -36,16 +36,17 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 ## PINNED RULES
 
 1. Entering a paycheck increases **Available to Assign**. Account **starting balances** also increase Available (cash already in the bank is assignable before the first paycheck).
-2. Spending before assigning decreases **Available to Assign** (not only the account balance).
+2. Available changes only from income, starting balances, and **assigns** (Available → bucket/goal). Spending does **not** change Available.
 3. A normal spend updates: the transaction, and the category’s plan bucket (spent / remaining). It does **not** change goals.
-4. Transfers (including paying a credit card) move money between accounts only — they are **not** spending and do not hit plan buckets as spend.
+4. Account transfers (including paying a credit card) move money between accounts only — they are **not** spending and do not hit plan buckets as spend.
 5. “Can we afford this?” returns **two** answers: (a) cash / Available now, (b) impact on goals — shown separately.
-6. Goals are funded **only** by assigning Available → Goal.
-7. Overspending a bucket is allowed; remaining may go negative.
+6. Goals are funded by assigning Available → Goal, or by transferring from another goal/bucket into the goal.
+7. Spending more than a bucket’s remaining is **blocked** — assign from Available or transfer from another bucket/goal first. No auto-assign on spend.
 8. Assigning **more than Available** is allowed; Available may go negative.
 9. Leftover assigned money in a bucket rolls into the next month’s same bucket.
 10. Goals and plan buckets are separate objects.
 11. Day one: show the home experience empty, with a short path to add a first account / paycheck — do not lock dashboards behind a mandatory setup wall.
+12. Assigned-money moves: **bucket → bucket** only; **goal → goal** or **goal → bucket**. These do not change Available.
 
 ---
 
@@ -79,49 +80,55 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 **When** I record a $50 groceries spend  
 **Then** a $50 transaction exists, Groceries spent is $50, Groceries remaining is $150
 
-### 5. Spend before assigning
+### 5. Spend blocked without funding
 
-**Given** Available to Assign is $500  
-**When** I record a $40 spend without assigning first  
-**Then** Available to Assign is $460
+**Given** Available to Assign is $500 and Groceries has $0 remaining  
+**When** I try to record a $40 groceries spend  
+**Then** the spend is rejected; Available is still $500; I must assign or transfer into Groceries first
 
-### 6. Transfer
+### 6. Account transfer
 
 **Given** Checking has $1000 and Savings has $0  
 **When** I transfer $200 Checking → Savings  
 **Then** Checking is $800, Savings is $200, and spending / plan-bucket spent totals are unchanged
 
-### 7. Overspend bucket
+### 7. Bucket → bucket transfer
 
-**Given** Groceries has $200 assigned  
-**When** I record a $250 groceries spend  
-**Then** the spend is allowed and Groceries remaining is −$50
+**Given** Groceries has $200 remaining and Dining has $0 remaining  
+**When** I transfer $50 from Groceries to Dining  
+**Then** Groceries remaining is $150, Dining remaining is $50, and Available is unchanged
 
-### 8. Over-assign
+### 8. Goal → bucket / goal transfer
+
+**Given** House goal has $300 progress and Groceries has $0 remaining  
+**When** I transfer $40 from House to Groceries  
+**Then** House progress is $260, Groceries remaining is $40, and Available is unchanged
+
+### 9. Over-assign
 
 **Given** Available to Assign is $100  
 **When** I assign $150 to a bucket (or goal)  
 **Then** the assign is allowed and Available to Assign is −$50
 
-### 9. Covered planned expense
+### 10. Covered planned expense
 
 **Given** a planned expense “Rent” for $1200 linked to the Rent bucket, and Rent bucket has at least $1200 assigned/remaining  
 **When** I view upcoming expenses  
 **Then** Rent shows as covered
 
-### 10. Not covered planned expense
+### 11. Not covered planned expense
 
 **Given** the same Rent expense and the Rent bucket has only $400  
 **When** I view upcoming expenses  
 **Then** Rent shows as not covered
 
-### 11. Afford
+### 12. Afford
 
 **Given** I am considering a purchase  
 **When** I use affordability  
 **Then** I see whether we can cover it from cash/Available **and**, separately, how it affects goal timelines / on-track status
 
-### 12. Day one
+### 13. Day one
 
 **Given** a brand-new household with no accounts or transactions  
 **When** I open the app  
@@ -133,11 +140,12 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 
 | Case | Expected |
 | --- | --- |
-| Spend more than bucket assigned | Allowed; bucket remaining negative |
+| Spend more than bucket remaining | Blocked; assign or transfer first |
 | Assign more than Available | Allowed; Available negative |
-| Transfer | Not treated as spend |
-| Pay credit card | Treated as transfer, not spend |
-| Goal progress | Does not move from ordinary spends; only from Available → Goal assigns |
+| Account transfer | Not treated as spend |
+| Pay credit card | Treated as account transfer, not spend |
+| Bucket → bucket / goal → goal or bucket | Reassigns money; Available unchanged |
+| Goal progress | Does not move from ordinary spends; only from Available → Goal assigns or transfers into the goal |
 | Month boundary | Leftover in a bucket rolls to next month’s same bucket |
 
 ---

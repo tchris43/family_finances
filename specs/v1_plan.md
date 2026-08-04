@@ -77,10 +77,10 @@ Planned expenses: live under **Plan** or **Home** upcoming — one place, linked
 - **Goal** — name, target, current (from assigns), target date, priority; suggested contribution derived
 - **Planned expense** — name, amount, due date, recurrence, priority, linked bucket_id; covered derived
 - **Transaction** — date, amount, type (income / expense / transfer), bucket (required for expense; income may use an Income bucket or type), account_id (required), transfer_pair for transfers, merchant/notes optional
-- **Assignment** — moves Available into a bucket or goal (facts used to derive Available and goal current)
+- **Assignment** — moves Available into a bucket or goal, or moves assigned money bucket↔bucket / goal→goal|bucket (paired +/- rows; Available unchanged for reassigns)
 
 **Available to Assign (derived):**  
-sum(account starting balances) + income credited − amounts assigned to buckets/goals − expenses that consumed Available (spend-before-assign reduces Available). Starting balances count so day-one cash is assignable before the first paycheck. Transfers/adjustments do not affect Available.
+sum(account starting balances) + income − sum(all assignment amounts). Spending does not change Available. Bucket/goal reassign transfers net to zero in the assignment sum. Account transfers/adjustments do not affect Available. Spend is blocked when bucket remaining < amount.
 
 ---
 

@@ -40,7 +40,8 @@ export default async function PlanPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h1 className="font-serif text-3xl tracking-tight">Plan</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Give every dollar a job. Tap a bucket to assign money from Available.
+          Give every dollar a job. Assign from Available, or transfer between
+          buckets. Spend only works when a bucket has enough remaining.
         </p>
 
         <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
@@ -134,6 +135,12 @@ export default async function PlanPage() {
                     spentCents={spentCents}
                     remainingCents={remainingCents}
                     monthKey={monthKey}
+                    otherBuckets={rows
+                      .filter((r) => r.bucket.id !== bucket.id)
+                      .map((r) => ({
+                        id: r.bucket.id,
+                        name: r.bucket.name,
+                      }))}
                   />
                 ),
               )

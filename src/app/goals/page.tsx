@@ -1,6 +1,8 @@
+import { eq } from "drizzle-orm";
 import { AddGoalForm } from "@/components/add-goal-form";
 import { AppNav } from "@/components/app-nav";
 import { GoalCard } from "@/components/goal-card";
+import { buckets } from "@/db/schema";
 import { listGoalsWithStats } from "@/lib/goals";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { currentMonthKey, formatCents } from "@/lib/money";
@@ -11,6 +13,10 @@ export default async function GoalsPage() {
   const available = await getAvailableToAssignCents(db, householdId);
   const monthKey = currentMonthKey();
   const rows = await listGoalsWithStats(db, householdId);
+  const bucketList = await db
+    .select({ id: buckets.id, name: buckets.name })
+    .from(buckets)
+    .where(eq(buckets.householdId, householdId));
 
   return (
     <>
@@ -18,8 +24,8 @@ export default async function GoalsPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h1 className="font-serif text-3xl tracking-tight">Goals</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Longer-term targets. Fund them by assigning Available — spends never
-          move goals.
+          Longer-term targets. Fund from Available, or transfer freely to other
+          goals or buckets. Spends never move goals.
         </p>
 
         <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
@@ -49,6 +55,10 @@ export default async function GoalsPage() {
                 onTrack={stats.onTrack}
                 estimatedCompletion={stats.estimatedCompletion}
                 monthKey={monthKey}
+                otherGoals={rows
+                  .filter((r) => r.goal.id !== goal.id)
+                  .map((r) => ({ id: r.goal.id, name: r.goal.name }))}
+                buckets={bucketList}
               />
             ))
           )}

@@ -57,7 +57,7 @@ export const buckets = pgTable("buckets", {
     .notNull(),
 });
 
-/** Longer-term targets — funded only by Available → Goal assigns. */
+/** Longer-term targets — funded by Available → Goal assigns or transfers in. */
 export const goals = pgTable("goals", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id")

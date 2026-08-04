@@ -21,10 +21,10 @@ export function QuickAddTransaction({
   mainAccountId: string;
 }) {
   const [open, setOpen] = useState(false);
-  {/* Prefer income first when household has no activity yet */}
   const [kind, setKind] = useState<"expense" | "income" | "transfer">(
     "expense",
   );
+  const [error, setError] = useState<string | null>(null);
 
   if (accounts.length === 0) {
     return (
@@ -38,16 +38,35 @@ export function QuickAddTransaction({
     "mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm";
 
   async function onIncome(formData: FormData) {
-    await createIncome(formData);
-    setOpen(false);
+    setError(null);
+    try {
+      await createIncome(formData);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save income");
+    }
   }
   async function onExpense(formData: FormData) {
-    await createExpense(formData);
-    setOpen(false);
+    setError(null);
+    try {
+      const result = await createExpense(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save expense");
+    }
   }
   async function onTransfer(formData: FormData) {
-    await createTransfer(formData);
-    setOpen(false);
+    setError(null);
+    try {
+      await createTransfer(formData);
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not transfer");
+    }
   }
 
   return (
@@ -90,7 +109,10 @@ export function QuickAddTransaction({
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setKind(value)}
+                  onClick={() => {
+                    setKind(value);
+                    setError(null);
+                  }}
                   className={`rounded-full px-3 py-1 ${
                     kind === value
                       ? "bg-[var(--accent)] text-white"
@@ -101,6 +123,16 @@ export function QuickAddTransaction({
                 </button>
               ))}
             </div>
+
+            {error ? (
+              <p className="mt-4 text-sm text-amber-900">{error}</p>
+            ) : null}
+
+            {kind === "expense" ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Bucket must have enough remaining — assign or transfer first.
+              </p>
+            ) : null}
 
             {kind === "income" ? (
               <form action={onIncome} className="mt-5 grid gap-3">

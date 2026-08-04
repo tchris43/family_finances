@@ -4,7 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { accounts, buckets, transactions } from "@/db/schema";
-import { dollarsToCents, todayISO } from "@/lib/money";
+import { getBucketMonthStats } from "@/lib/ledger";
+import { dollarsToCents, monthKeyFromDate, todayISO } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 
 async function assertAccount(householdId: string, accountId: string) {
@@ -48,7 +49,9 @@ export async function createIncome(formData: FormData) {
   revalidatePath("/accounts");
 }
 
-export async function createExpense(formData: FormData) {
+export async function createExpense(
+  formData: FormData,
+): Promise<{ error?: string }> {
   const { db, householdId } = await requireSession();
   const accountId = String(formData.get("accountId") ?? "");
   const bucketId = String(formData.get("bucketId") ?? "");
@@ -57,10 +60,22 @@ export async function createExpense(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const merchant = String(formData.get("merchant") ?? "").trim() || null;
 
-  if (amount <= 0) throw new Error("Amount must be positive");
-  if (!bucketId) throw new Error("Bucket is required");
-  await assertBucket(householdId, bucketId);
-  await assertAccount(householdId, accountId);
+  if (amount <= 0) return { error: "Amount must be positive" };
+  if (!bucketId) return { error: "Bucket is required" };
+  try {
+    await assertBucket(householdId, bucketId);
+    await assertAccount(householdId, accountId);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Invalid account or bucket" };
+  }
+
+  const monthKey = monthKeyFromDate(date);
+  const { remainingCents } = await getBucketMonthStats(db, bucketId, monthKey);
+  if (amount > remainingCents) {
+    return {
+      error: "Not enough in this bucket. Assign or transfer money first.",
+    };
+  }
 
   await db.insert(transactions).values({
     householdId,
@@ -77,6 +92,7 @@ export async function createExpense(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/plan");
   revalidatePath("/accounts");
+  return {};
 }
 
 async function assertBucket(householdId: string, bucketId: string) {
