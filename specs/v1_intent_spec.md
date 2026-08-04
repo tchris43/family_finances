@@ -35,7 +35,7 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 
 ## PINNED RULES
 
-1. Entering a paycheck increases **Available to Assign**.
+1. Entering a paycheck increases **Available to Assign**. Account **starting balances** also increase Available (cash already in the bank is assignable before the first paycheck).
 2. Spending before assigning decreases **Available to Assign** (not only the account balance).
 3. A normal spend updates: the transaction, and the category’s plan bucket (spent / remaining). It does **not** change goals.
 4. Transfers (including paying a credit card) move money between accounts only — they are **not** spending and do not hit plan buckets as spend.
@@ -51,7 +51,11 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 
 ## ACCEPTANCE CRITERIA
 
-### 1. Paycheck
+### 1. Starting cash and paycheck
+
+**Given** Available to Assign is $0  
+**When** I add a checking account with starting balance $2500  
+**Then** Available to Assign is $2500
 
 **Given** Available to Assign is $0  
 **When** I enter a paycheck of $1000  

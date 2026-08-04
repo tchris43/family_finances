@@ -15,7 +15,7 @@ export function GettingStarted({
     {
       done: hasAccounts,
       title: "Add an account",
-      body: "Checking is enough to start. Mark it Main so new spends default there.",
+      body: "Set the real balance you have now — that cash is Available to Assign right away.",
       href: "/accounts",
       cta: "Accounts",
     },
@@ -28,8 +28,8 @@ export function GettingStarted({
     },
     {
       done: hasTransactions,
-      title: "Enter a paycheck",
-      body: "Use + Transaction on Home → Income. That raises Available to Assign.",
+      title: "Record activity as it happens",
+      body: "Spends and paychecks on Home keep balances and Available honest.",
       href: "/",
       cta: "Home",
     },
@@ -39,8 +39,8 @@ export function GettingStarted({
     <section className="mt-8 rounded-xl border border-[var(--border)] bg-white/70 p-5">
       <h2 className="font-serif text-xl">Getting started</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        Three short steps — then assign dollars on Plan and you’re living in the
-        app.
+        Add accounts with starting balances, then assign that money on Plan —
+        no paycheck required first.
       </p>
       <ol className="mt-5 space-y-4">
         {steps.map((step, i) => (

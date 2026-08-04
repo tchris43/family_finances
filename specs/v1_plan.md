@@ -80,7 +80,7 @@ Planned expenses: live under **Plan** or **Home** upcoming — one place, linked
 - **Assignment** — moves Available into a bucket or goal (facts used to derive Available and goal current)
 
 **Available to Assign (derived):**  
-income credited − amounts assigned to buckets/goals − expenses that consumed Available per intent rules (spend-before-assign reduces Available). Exact formula implemented to match intent acceptance tests; tests pin the eight+ GWT cases in the intent spec.
+sum(account starting balances) + income credited − amounts assigned to buckets/goals − expenses that consumed Available (spend-before-assign reduces Available). Starting balances count so day-one cash is assignable before the first paycheck. Transfers/adjustments do not affect Available.
 
 ---
 

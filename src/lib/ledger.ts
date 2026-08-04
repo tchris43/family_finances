@@ -26,13 +26,21 @@ export async function getAccountBalanceCents(
 
 /**
  * Available to Assign (derived):
- *   sum(income) − sum(assignments) − sum(expenses)
+ *   sum(starting balances) + sum(income) − sum(assignments) − sum(expenses)
+ * So cash already in accounts is assignable before the first paycheck.
  * Transfers and adjustments do not affect Available.
  */
 export async function getAvailableToAssignCents(
   db: Db,
   householdId: string,
 ): Promise<number> {
+  const [startingRow] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${accounts.startingBalanceCents}), 0)`,
+    })
+    .from(accounts)
+    .where(eq(accounts.householdId, householdId));
+
   const [incomeRow] = await db
     .select({
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
@@ -65,6 +73,7 @@ export async function getAvailableToAssignCents(
     .where(eq(assignments.householdId, householdId));
 
   return (
+    Number(startingRow?.total ?? 0) +
     Number(incomeRow?.total ?? 0) -
     Number(assignRow?.total ?? 0) -
     Number(expenseRow?.total ?? 0)
