@@ -8,17 +8,18 @@ import { accounts, buckets, households, users } from "../src/db/schema";
 config({ path: ".env.local" });
 config();
 
-const DEFAULT_BUCKETS = [
-  "Groceries",
-  "Eating Out",
-  "Housing",
-  "Transportation",
-  "Utilities",
-  "Entertainment",
-  "Medical",
-  "Giving",
-  "Fun Money",
-];
+const DEFAULT_BUCKETS: { name: string; fundKind: "necessary" | "unnecessary" }[] =
+  [
+    { name: "Groceries", fundKind: "necessary" },
+    { name: "Housing", fundKind: "necessary" },
+    { name: "Transportation", fundKind: "necessary" },
+    { name: "Utilities", fundKind: "necessary" },
+    { name: "Medical", fundKind: "necessary" },
+    { name: "Eating Out", fundKind: "unnecessary" },
+    { name: "Entertainment", fundKind: "unnecessary" },
+    { name: "Giving", fundKind: "unnecessary" },
+    { name: "Fun Money", fundKind: "unnecessary" },
+  ];
 
 async function ensureBuckets(
   db: ReturnType<typeof drizzle>,
@@ -31,7 +32,12 @@ async function ensureBuckets(
   if (existing.length > 0) return;
 
   await db.insert(buckets).values(
-    DEFAULT_BUCKETS.map((name) => ({ householdId, name })),
+    DEFAULT_BUCKETS.map((b, index) => ({
+      householdId,
+      name: b.name,
+      fundKind: b.fundKind,
+      sortOrder: index,
+    })),
   );
   console.log(`Seeded ${DEFAULT_BUCKETS.length} buckets.`);
 }

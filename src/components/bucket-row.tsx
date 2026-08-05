@@ -10,19 +10,29 @@ type Peer = { id: string; name: string };
 export function BucketRow({
   bucketId,
   name,
+  fundKind,
   assignedCents,
   spentCents,
   remainingCents,
   monthKey,
   otherBuckets,
+  dragging,
+  onDragStart,
+  onDragEnd,
+  onMoveKind,
 }: {
   bucketId: string;
   name: string;
+  fundKind: "necessary" | "unnecessary";
   assignedCents: number;
   spentCents: number;
   remainingCents: number;
   monthKey: string;
   otherBuckets: Peer[];
+  dragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  onMoveKind?: (kind: "necessary" | "unnecessary") => void;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"assign" | "transfer">("assign");
@@ -53,33 +63,56 @@ export function BucketRow({
   }
 
   return (
-    <li className="border-b border-[var(--border)] py-3">
-      <button
-        type="button"
-        onClick={() => {
-          setOpen((v) => !v);
-          setError(null);
-        }}
-        className="flex w-full items-start justify-between gap-4 text-left"
-      >
-        <div>
-          <p className="font-medium">{name}</p>
-          <p className="text-sm text-[var(--muted)]">
-            Assigned {formatCents(assignedCents)} · Spent{" "}
-            {formatCents(spentCents)}
-          </p>
-        </div>
-        <p
-          className={`tabular-nums font-medium ${
-            remainingCents < 0 ? "text-red-800" : ""
-          }`}
+    <li
+      className={`border-b border-[var(--border)] py-3 ${
+        dragging ? "opacity-50" : ""
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          draggable
+          aria-label={`Drag ${name}`}
+          title="Drag to reorder"
+          className="mt-0.5 cursor-grab touch-none select-none rounded px-1.5 py-1 text-[var(--muted)] hover:bg-black/5 active:cursor-grabbing"
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", bucketId);
+            onDragStart?.();
+          }}
+          onDragEnd={() => onDragEnd?.()}
+          onClick={(e) => e.stopPropagation()}
         >
-          {formatCents(remainingCents)}
-          <span className="ml-1 text-xs font-normal text-[var(--muted)]">
-            left
-          </span>
-        </p>
-      </button>
+          ⋮⋮
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setOpen((v) => !v);
+            setError(null);
+          }}
+          className="flex min-w-0 flex-1 items-start justify-between gap-4 text-left"
+        >
+          <div className="min-w-0">
+            <p className="font-medium">{name}</p>
+            <p className="text-sm text-[var(--muted)]">
+              Assigned {formatCents(assignedCents)} · Spent{" "}
+              {formatCents(spentCents)}
+            </p>
+          </div>
+          <p
+            className={`shrink-0 tabular-nums font-medium ${
+              remainingCents < 0 ? "text-red-800" : ""
+            }`}
+          >
+            {formatCents(remainingCents)}
+            <span className="ml-1 text-xs font-normal text-[var(--muted)]">
+              left
+            </span>
+          </p>
+        </button>
+      </div>
 
       {open ? (
         <div className="mt-3 space-y-3 rounded-lg border border-[var(--border)] bg-white/70 p-3">
@@ -187,6 +220,21 @@ export function BucketRow({
               </div>
             </form>
           )}
+
+          {onMoveKind ? (
+            <button
+              type="button"
+              className="text-xs text-[var(--muted)] hover:text-[var(--accent)]"
+              onClick={() =>
+                onMoveKind(
+                  fundKind === "necessary" ? "unnecessary" : "necessary",
+                )
+              }
+            >
+              Move to{" "}
+              {fundKind === "necessary" ? "Unnecessary" : "Necessary"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </li>

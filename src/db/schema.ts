@@ -45,13 +45,16 @@ export const accounts = pgTable("accounts", {
     .notNull(),
 });
 
-/** Plan bucket = spend category (one list). */
+/** Plan bucket = spend category (Necessary or Unnecessary). */
 export const buckets = pgTable("buckets", {
   id: uuid("id").defaultRandom().primaryKey(),
   householdId: uuid("household_id")
     .notNull()
     .references(() => households.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  /** necessary | unnecessary */
+  fundKind: text("fund_kind").notNull().default("necessary"),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

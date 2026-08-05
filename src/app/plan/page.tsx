@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { AddBucketForm } from "@/components/add-bucket-form";
 import { AddPlannedExpenseForm } from "@/components/add-planned-expense-form";
 import { AppNav } from "@/components/app-nav";
-import { BucketRow } from "@/components/bucket-row";
+import { BucketBoard } from "@/components/bucket-board";
 import { buckets } from "@/db/schema";
 import {
   getAvailableToAssignCents,
@@ -21,7 +21,8 @@ export default async function PlanPage() {
   const bucketList = await db
     .select()
     .from(buckets)
-    .where(eq(buckets.householdId, householdId));
+    .where(eq(buckets.householdId, householdId))
+    .orderBy(asc(buckets.sortOrder), asc(buckets.name));
 
   const rows = await Promise.all(
     bucketList.map(async (bucket) => {
@@ -30,7 +31,15 @@ export default async function PlanPage() {
     }),
   );
 
-  rows.sort((a, b) => a.bucket.name.localeCompare(b.bucket.name));
+  rows.sort((a, b) => {
+    if (a.bucket.fundKind !== b.bucket.fundKind) {
+      return a.bucket.fundKind === "necessary" ? -1 : 1;
+    }
+    if (a.bucket.sortOrder !== b.bucket.sortOrder) {
+      return a.bucket.sortOrder - b.bucket.sortOrder;
+    }
+    return a.bucket.name.localeCompare(b.bucket.name);
+  });
 
   const upcoming = await listPlannedExpensesWithCoverage(db, householdId);
 
@@ -119,33 +128,36 @@ export default async function PlanPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">
             Month {monthKey} · leftover rolls forward
           </p>
-          <ul className="mt-4 border-t border-[var(--border)]">
-            {rows.length === 0 ? (
-              <li className="py-4 text-sm text-[var(--muted)]">
-                No buckets yet — add one below.
-              </li>
-            ) : (
-              rows.map(
-                ({ bucket, assignedCents, spentCents, remainingCents }) => (
-                  <BucketRow
-                    key={bucket.id}
-                    bucketId={bucket.id}
-                    name={bucket.name}
-                    assignedCents={assignedCents}
-                    spentCents={spentCents}
-                    remainingCents={remainingCents}
-                    monthKey={monthKey}
-                    otherBuckets={rows
-                      .filter((r) => r.bucket.id !== bucket.id)
-                      .map((r) => ({
-                        id: r.bucket.id,
-                        name: r.bucket.name,
-                      }))}
-                  />
-                ),
-              )
-            )}
-          </ul>
+          {rows.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--muted)]">
+              No buckets yet — add one below.
+            </p>
+          ) : (
+            <div className="mt-4">
+              <BucketBoard
+                key={rows
+                  .map(
+                    (r) =>
+                      `${r.bucket.id}:${r.bucket.fundKind}:${r.bucket.sortOrder}`,
+                  )
+                  .join("|")}
+                monthKey={monthKey}
+                initialBuckets={rows.map(
+                  ({ bucket, assignedCents, spentCents, remainingCents }) => ({
+                    bucketId: bucket.id,
+                    name: bucket.name,
+                    fundKind:
+                      bucket.fundKind === "unnecessary"
+                        ? "unnecessary"
+                        : "necessary",
+                    assignedCents,
+                    spentCents,
+                    remainingCents,
+                  }),
+                )}
+              />
+            </div>
+          )}
           <div className="mt-4">
             <AddBucketForm />
           </div>
