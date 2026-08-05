@@ -13,8 +13,10 @@ export type PlannedExpenseRow = {
 };
 
 /**
- * Covered when linked bucket's remaining (assigned − spent, with rollover)
- * for the expense's due month is >= expense amount.
+ * Covered when the linked bucket has enough remaining after earlier
+ * planned expenses in that same bucket claim their share first
+ * (order: due date, then priority). Multiple bills in one bucket share
+ * one pool — they are not each checked against the full remaining.
  */
 export async function listPlannedExpensesWithCoverage(
   db: Db,
@@ -34,23 +36,44 @@ export async function listPlannedExpensesWithCoverage(
     bucketList.map((b) => [b.id, b.name]),
   );
 
-  return Promise.all(
-    expenses.map(async (expense) => {
-      const monthKey = monthKeyFromDate(expense.dueDate);
+  /** Cents already claimed by earlier planned expenses in this bucket. */
+  const claimedByBucket = new Map<string, number>();
+  const remainingCache = new Map<string, number>();
+
+  const rows: PlannedExpenseRow[] = [];
+
+  for (const expense of expenses) {
+    const monthKey = monthKeyFromDate(expense.dueDate);
+    const cacheKey = `${expense.bucketId}:${monthKey}`;
+
+    let bucketRemainingCents = remainingCache.get(cacheKey);
+    if (bucketRemainingCents === undefined) {
       const stats = await getBucketMonthStats(db, expense.bucketId, monthKey);
-      const covered = stats.remainingCents >= expense.amountCents;
-      const shortfallCents = covered
-        ? 0
-        : expense.amountCents - stats.remainingCents;
-      return {
-        expense,
-        bucketName: bucketName[expense.bucketId] ?? "Bucket",
-        covered,
-        bucketRemainingCents: stats.remainingCents,
-        shortfallCents,
-      };
-    }),
-  );
+      bucketRemainingCents = stats.remainingCents;
+      remainingCache.set(cacheKey, bucketRemainingCents);
+    }
+
+    const claimed = claimedByBucket.get(expense.bucketId) ?? 0;
+    const freeCents = bucketRemainingCents - claimed;
+    const covered = freeCents >= expense.amountCents;
+    const shortfallCents = covered
+      ? 0
+      : expense.amountCents - Math.max(freeCents, 0);
+
+    if (covered) {
+      claimedByBucket.set(expense.bucketId, claimed + expense.amountCents);
+    }
+
+    rows.push({
+      expense,
+      bucketName: bucketName[expense.bucketId] ?? "Bucket",
+      covered,
+      bucketRemainingCents,
+      shortfallCents,
+    });
+  }
+
+  return rows;
 }
 
 export async function listUpcomingPlannedExpenses(

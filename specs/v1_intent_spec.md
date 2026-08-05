@@ -116,6 +116,12 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 **When** I view upcoming expenses  
 **Then** Rent shows as covered
 
+### 10b. Multiple planned expenses share bucket funding
+
+**Given** Groceries bucket has $100 remaining, and two planned expenses linked to Groceries: “Costco” $80 due earlier and “Trader Joe’s” $80 due later  
+**When** I view upcoming expenses  
+**Then** Costco shows as covered and Trader Joe’s shows as not covered (short $60) — they do not each claim the full $100
+
 ### 11. Not covered planned expense
 
 **Given** the same Rent expense and the Rent bucket has only $400  

@@ -75,7 +75,7 @@ Planned expenses: live under **Plan** or **Home** upcoming — one place, linked
 - **Account** — name, type, institution, starting balance, is_main, manual adjustments as needed
 - **Bucket** — name; monthly assigned/spent/remaining (remaining derived); rolls leftover to next month
 - **Goal** — name, target, current (from assigns), target date, priority; suggested contribution derived
-- **Planned expense** — name, amount, due date, recurrence, priority, linked bucket_id; covered derived
+- **Planned expense** — name, amount, due date, recurrence, priority, linked bucket_id; covered derived (shared pool per bucket: earlier due/priority claim first)
 - **Transaction** — date, amount, type (income / expense / transfer), bucket (required for expense; income may use an Income bucket or type), account_id (required), transfer_pair for transfers, merchant/notes optional
 - **Assignment** — moves Available into a bucket or goal, or moves assigned money bucket↔bucket / goal→goal|bucket (paired +/- rows; Available unchanged for reassigns)
 
