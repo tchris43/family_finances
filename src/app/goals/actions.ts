@@ -150,9 +150,6 @@ export async function transferFromGoal(
   return {};
 }
 
-  revalidateMoneyPaths();
-}
-
 export async function updateGoal(formData: FormData) {
   const { db, householdId } = await requireSession();
   const goalId = String(formData.get("goalId") ?? "");
