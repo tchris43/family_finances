@@ -141,3 +141,19 @@ export const transactions = pgTable("transactions", {
     .defaultNow()
     .notNull(),
 });
+
+/** Freeform household notes (goals, reminders, etc.). */
+export const notes = pgTable("notes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  householdId: uuid("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  title: text("title").notNull().default(""),
+  body: text("body").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
