@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
-import { assignToGoal, deleteGoal, transferFromGoal } from "@/app/goals/actions";
+import {
+  assignToGoal,
+  deleteGoal,
+  transferFromGoal,
+  updateGoal,
+} from "@/app/goals/actions";
 import { formatCents } from "@/lib/money";
 
 type Peer = { id: string; name: string };
@@ -12,6 +17,7 @@ export function GoalCard({
   name,
   targetCents,
   targetDate,
+  priority,
   currentCents,
   remainingCents,
   progressRatio,
@@ -26,6 +32,7 @@ export function GoalCard({
   name: string;
   targetCents: number;
   targetDate: string | null;
+  priority: number;
   currentCents: number;
   remainingCents: number;
   progressRatio: number;
@@ -37,8 +44,12 @@ export function GoalCard({
   buckets: Peer[];
 }) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"assign" | "transfer">("assign");
+  const [mode, setMode] = useState<"assign" | "transfer" | "edit">("assign");
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const field =
+    "mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2";
 
   const destinations = useMemo(() => {
     const list: { kind: "goal" | "bucket"; id: string; label: string }[] = [];
@@ -79,6 +90,17 @@ export function GoalCard({
     }
   }
 
+  async function onEdit(formData: FormData) {
+    setError(null);
+    setSaved(false);
+    try {
+      await updateGoal(formData);
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update goal");
+    }
+  }
+
   const pct = Math.round(progressRatio * 100);
 
   return (
@@ -88,6 +110,7 @@ export function GoalCard({
         onClick={() => {
           setOpen((v) => !v);
           setError(null);
+          setSaved(false);
         }}
         className="w-full text-left"
       >
@@ -97,6 +120,7 @@ export function GoalCard({
             <p className="mt-1 text-sm text-[var(--muted)]">
               {formatCents(currentCents)} of {formatCents(targetCents)}
               {targetDate ? ` · by ${targetDate}` : ""}
+              {` · priority ${priority}`}
             </p>
           </div>
           <div className="text-right">
@@ -131,35 +155,31 @@ export function GoalCard({
 
       {open ? (
         <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
-          <div className="flex gap-2 text-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("assign");
-                setError(null);
-              }}
-              className={`rounded-full px-3 py-1 ${
-                mode === "assign"
-                  ? "bg-[var(--accent)] text-white"
-                  : "border border-[var(--border)] text-[var(--muted)]"
-              }`}
-            >
-              Assign
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("transfer");
-                setError(null);
-              }}
-              className={`rounded-full px-3 py-1 ${
-                mode === "transfer"
-                  ? "bg-[var(--accent)] text-white"
-                  : "border border-[var(--border)] text-[var(--muted)]"
-              }`}
-            >
-              Transfer
-            </button>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {(
+              [
+                ["assign", "Assign"],
+                ["transfer", "Transfer"],
+                ["edit", "Edit"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setMode(value);
+                  setError(null);
+                  setSaved(false);
+                }}
+                className={`rounded-full px-3 py-1 ${
+                  mode === value
+                    ? "bg-[var(--accent)] text-white"
+                    : "border border-[var(--border)] text-[var(--muted)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {error ? (
@@ -190,51 +210,106 @@ export function GoalCard({
                 </button>
               </div>
             </form>
-          ) : destinations.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">
-              Add another goal or a bucket to transfer into.
-            </p>
-          ) : (
-            <form action={onTransfer} className="grid gap-3">
-              <input type="hidden" name="fromGoalId" value={goalId} />
-              <input type="hidden" name="monthKey" value={monthKey} />
+          ) : null}
+
+          {mode === "transfer" ? (
+            destinations.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">
-                Move from <strong>{name}</strong> (
-                {formatCents(currentCents)} funded) to a goal or bucket
+                Add another goal or a bucket to transfer into.
               </p>
-              <label className="text-sm">
-                <span className="text-[var(--muted)]">To</span>
-                <select
-                  name="destination"
+            ) : (
+              <form action={onTransfer} className="grid gap-3">
+                <input type="hidden" name="fromGoalId" value={goalId} />
+                <input type="hidden" name="monthKey" value={monthKey} />
+                <p className="text-sm text-[var(--muted)]">
+                  Move from <strong>{name}</strong> (
+                  {formatCents(currentCents)} funded) to a goal or bucket
+                </p>
+                <label className="text-sm">
+                  <span className="text-[var(--muted)]">To</span>
+                  <select
+                    name="destination"
+                    required
+                    className={field}
+                    defaultValue={`${destinations[0].kind}:${destinations[0].id}`}
+                  >
+                    {destinations.map((d) => (
+                      <option
+                        key={`${d.kind}:${d.id}`}
+                        value={`${d.kind}:${d.id}`}
+                      >
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <MoneyAmountInput label="Transfer amount" />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
+                  >
+                    Transfer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )
+          ) : null}
+
+          {mode === "edit" ? (
+            <form action={onEdit} className="grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="goalId" value={goalId} />
+              <label className="text-sm sm:col-span-2">
+                <span className="text-[var(--muted)]">Target amount</span>
+                <input
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
                   required
-                  className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2"
-                  defaultValue={`${destinations[0].kind}:${destinations[0].id}`}
-                >
-                  {destinations.map((d) => (
-                    <option key={`${d.kind}:${d.id}`} value={`${d.kind}:${d.id}`}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
+                  defaultValue={(targetCents / 100).toFixed(2)}
+                  className={field}
+                />
               </label>
-              <MoneyAmountInput label="Transfer amount" />
-              <div className="flex flex-wrap gap-2">
+              <label className="text-sm">
+                <span className="text-[var(--muted)]">Priority (0 = highest)</span>
+                <input
+                  name="priority"
+                  type="number"
+                  required
+                  defaultValue={priority}
+                  className={field}
+                />
+              </label>
+              <label className="text-sm">
+                <span className="text-[var(--muted)]">Target date (optional)</span>
+                <input
+                  name="targetDate"
+                  type="date"
+                  defaultValue={targetDate ?? ""}
+                  className={field}
+                />
+              </label>
+              <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
                 <button
                   type="submit"
                   className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                 >
-                  Transfer
+                  Save changes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"
-                >
-                  Cancel
-                </button>
+                {saved ? (
+                  <span className="text-sm text-teal-800">Saved</span>
+                ) : null}
               </div>
             </form>
-          )}
+          ) : null}
 
           <form action={deleteGoal}>
             <input type="hidden" name="goalId" value={goalId} />

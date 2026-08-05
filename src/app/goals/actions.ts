@@ -150,6 +150,40 @@ export async function transferFromGoal(
   return {};
 }
 
+  revalidateMoneyPaths();
+}
+
+export async function updateGoal(formData: FormData) {
+  const { db, householdId } = await requireSession();
+  const goalId = String(formData.get("goalId") ?? "");
+  const targetCents = dollarsToCents(String(formData.get("amount") ?? "0"));
+  const priority = Number(formData.get("priority") ?? 0);
+  const targetDateRaw = String(formData.get("targetDate") ?? "").trim();
+  const targetDate = targetDateRaw || null;
+
+  if (!goalId) throw new Error("Goal required");
+  if (targetCents <= 0) throw new Error("Target must be positive");
+  if (!Number.isFinite(priority)) throw new Error("Priority must be a number");
+
+  const [goal] = await db
+    .select()
+    .from(goals)
+    .where(and(eq(goals.id, goalId), eq(goals.householdId, householdId)))
+    .limit(1);
+  if (!goal) throw new Error("Goal not found");
+
+  await db
+    .update(goals)
+    .set({
+      targetCents,
+      priority: Math.trunc(priority),
+      targetDate,
+    })
+    .where(eq(goals.id, goalId));
+
+  revalidateMoneyPaths();
+}
+
 export async function deleteGoal(formData: FormData) {
   const { db, householdId } = await requireSession();
   const goalId = String(formData.get("goalId") ?? "");

@@ -48,6 +48,7 @@ export default async function GoalsPage() {
                 name={goal.name}
                 targetCents={goal.targetCents}
                 targetDate={goal.targetDate}
+                priority={goal.priority}
                 currentCents={stats.currentCents}
                 remainingCents={stats.remainingCents}
                 progressRatio={stats.progressRatio}
