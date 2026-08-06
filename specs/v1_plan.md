@@ -61,6 +61,7 @@ Work in this order so the money model is correct before dashboards pile on. **Do
 | **Plan** | Available, assign to buckets, assign to goals, bucket assigned/spent/remaining |
 | **Spend** | Add/edit transactions (amount + bucket required; account defaults Main), transfers, lists, category/bucket reports + simple charts |
 | **Goals** | Goal list, targets, progress, on-track, suggested contribution |
+| **Cashflow** | Monthly forecast: paychecks, goal contributions, controllable expenses, leftover |
 | **Decisions** | Afford purchase / trip-style what-if: cash answer + goal impact |
 | **(Utility)** | Accounts manage (Main flag, starting balance, adjust), backup export, search |
 
@@ -78,6 +79,7 @@ Planned expenses: live under **Plan** or **Home** upcoming — one place, linked
 - **Planned expense** — name, amount, due date, recurrence, priority, linked bucket_id; covered derived (shared pool per bucket: earlier due/priority claim first)
 - **Transaction** — date, amount, type (income / expense / transfer), bucket (required for expense; income may use an Income bucket or type), account_id (required), transfer_pair for transfers, merchant/notes optional
 - **Assignment** — moves Available into a bucket or goal, or moves assigned money bucket↔bucket / goal→goal|bucket (paired +/- rows; Available unchanged for reassigns)
+- **Cashflow line** — forecast-only paycheck / expense / goal monthly amount (not ledger); deleting a goal line does not delete the goal
 
 **Available to Assign (derived):**  
 sum(account starting balances) + income − sum(all assignment amounts). Spending does not change Available. Bucket/goal reassign transfers net to zero in the assignment sum. Account transfers/adjustments do not affect Available. Spend is blocked when bucket remaining < amount.

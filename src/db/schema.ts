@@ -160,3 +160,27 @@ export const notes = pgTable("notes", {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * Monthly cashflow forecast lines (not real ledger transactions).
+ * kind: paycheck | expense | goal
+ */
+export const cashflowLines = pgTable("cashflow_lines", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  householdId: uuid("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // paycheck | expense | goal
+  label: text("label").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  bucketId: uuid("bucket_id").references(() => buckets.id, {
+    onDelete: "set null",
+  }),
+  goalId: uuid("goal_id").references(() => goals.id, {
+    onDelete: "cascade",
+  }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
