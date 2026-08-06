@@ -7,6 +7,7 @@ import {
   addCashflowPaycheck,
   deleteCashflowLine,
   pullGoalsIntoCashflow,
+  restoreGoalToCashflow,
   updateCashflowLine,
 } from "@/app/cashflow/actions";
 import { formatCents } from "@/lib/money";
@@ -15,9 +16,11 @@ type Line = {
   id: string;
   label: string;
   amountCents: number;
+  kind?: "paycheck" | "expense" | "goal";
 };
 
 type Bucket = { id: string; name: string; fundKind: string };
+type ExcludedGoal = { goalId: string; name: string };
 
 const field =
   "mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm";
@@ -58,9 +61,11 @@ export function CashflowPaychecks({ lines }: { lines: Line[] }) {
 export function CashflowGoals({
   lines,
   hasGoalsToPull,
+  excludedGoals,
 }: {
   lines: Line[];
   hasGoalsToPull: boolean;
+  excludedGoals: ExcludedGoal[];
 }) {
   return (
     <section>
@@ -68,8 +73,8 @@ export function CashflowGoals({
         <div>
           <h2 className="font-serif text-xl">Goals (monthly)</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Suggested monthly contributions — delete a line to leave it out of
-            this forecast (the goal itself stays).
+            Suggested monthly contributions. Remove from forecast leaves the
+            goal on Goals unchanged.
           </p>
         </div>
         {hasGoalsToPull ? (
@@ -83,7 +88,37 @@ export function CashflowGoals({
           </form>
         ) : null}
       </div>
-      <LineList lines={lines} empty="No goal lines — pull from Goals above." />
+      <LineList
+        lines={lines.map((l) => ({ ...l, kind: "goal" as const }))}
+        empty="No goal lines — pull from Goals above."
+        removeLabel="Remove from forecast"
+      />
+      {excludedGoals.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-[var(--border)] bg-white/50 p-3">
+          <p className="text-sm text-[var(--muted)]">
+            Left out of this forecast
+          </p>
+          <ul className="mt-2 space-y-2">
+            {excludedGoals.map((g) => (
+              <li
+                key={g.goalId}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span>{g.name}</span>
+                <form action={restoreGoalToCashflow}>
+                  <input type="hidden" name="goalId" value={g.goalId} />
+                  <button
+                    type="submit"
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    Add back
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -150,7 +185,15 @@ export function CashflowExpenses({
   );
 }
 
-function LineList({ lines, empty }: { lines: Line[]; empty: string }) {
+function LineList({
+  lines,
+  empty,
+  removeLabel = "Delete",
+}: {
+  lines: Line[];
+  empty: string;
+  removeLabel?: string;
+}) {
   if (lines.length === 0) {
     return <p className="mt-4 text-sm text-[var(--muted)]">{empty}</p>;
   }
@@ -158,13 +201,23 @@ function LineList({ lines, empty }: { lines: Line[]; empty: string }) {
   return (
     <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
       {lines.map((line) => (
-        <CashflowLineRow key={line.id} line={line} />
+        <CashflowLineRow
+          key={line.id}
+          line={line}
+          removeLabel={removeLabel}
+        />
       ))}
     </ul>
   );
 }
 
-function CashflowLineRow({ line }: { line: Line }) {
+function CashflowLineRow({
+  line,
+  removeLabel,
+}: {
+  line: Line;
+  removeLabel: string;
+}) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
       <form
@@ -209,7 +262,7 @@ function CashflowLineRow({ line }: { line: Line }) {
             type="submit"
             className="text-xs text-[var(--muted)] hover:text-red-700"
           >
-            Delete
+            {removeLabel}
           </button>
         </form>
       </div>

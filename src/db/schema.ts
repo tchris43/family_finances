@@ -184,3 +184,20 @@ export const cashflowLines = pgTable("cashflow_lines", {
     .defaultNow()
     .notNull(),
 });
+
+/**
+ * Goals deliberately left out of the cashflow forecast.
+ * Removing a goal line from Cashflow only affects the forecast — not the goal.
+ */
+export const cashflowGoalExclusions = pgTable("cashflow_goal_exclusions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  householdId: uuid("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  goalId: uuid("goal_id")
+    .notNull()
+    .references(() => goals.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

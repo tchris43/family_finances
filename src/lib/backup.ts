@@ -4,6 +4,7 @@ import {
   accounts,
   assignments,
   buckets,
+  cashflowGoalExclusions,
   cashflowLines,
   goals,
   households,
@@ -34,6 +35,7 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
     householdPlannedExpenses,
     householdNotes,
     householdCashflow,
+    householdCashflowExclusions,
   ] = await Promise.all([
     db.select().from(users).where(eq(users.householdId, householdId)),
     db.select().from(accounts).where(eq(accounts.householdId, householdId)),
@@ -56,6 +58,10 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
       .select()
       .from(cashflowLines)
       .where(eq(cashflowLines.householdId, householdId)),
+    db
+      .select()
+      .from(cashflowGoalExclusions)
+      .where(eq(cashflowGoalExclusions.householdId, householdId)),
   ]);
 
   return {
@@ -80,5 +86,6 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
     plannedExpenses: householdPlannedExpenses,
     notes: householdNotes,
     cashflowLines: householdCashflow,
+    cashflowGoalExclusions: householdCashflowExclusions,
   };
 }

@@ -5,7 +5,12 @@ import {
   CashflowGoals,
   CashflowPaychecks,
 } from "@/components/cashflow-sections";
-import { buckets, cashflowLines, goals } from "@/db/schema";
+import {
+  buckets,
+  cashflowGoalExclusions,
+  cashflowLines,
+  goals,
+} from "@/db/schema";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/session";
@@ -14,7 +19,7 @@ export default async function CashflowPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
 
-  const [lines, bucketList, goalList] = await Promise.all([
+  const [lines, bucketList, goalList, exclusions] = await Promise.all([
     db
       .select()
       .from(cashflowLines)
@@ -30,6 +35,10 @@ export default async function CashflowPage() {
       .where(eq(buckets.householdId, householdId))
       .orderBy(asc(buckets.fundKind), asc(buckets.sortOrder), asc(buckets.name)),
     db.select().from(goals).where(eq(goals.householdId, householdId)),
+    db
+      .select()
+      .from(cashflowGoalExclusions)
+      .where(eq(cashflowGoalExclusions.householdId, householdId)),
   ]);
 
   const paychecks = lines.filter((l) => l.kind === "paycheck");
@@ -44,7 +53,17 @@ export default async function CashflowPage() {
   const linkedGoalIds = new Set(
     goalLines.map((l) => l.goalId).filter(Boolean) as string[],
   );
-  const hasGoalsToPull = goalList.some((g) => !linkedGoalIds.has(g.id));
+  const excludedIds = new Set(exclusions.map((e) => e.goalId));
+  const hasGoalsToPull = goalList.some(
+    (g) => !linkedGoalIds.has(g.id) && !excludedIds.has(g.id),
+  );
+  const goalName = Object.fromEntries(goalList.map((g) => [g.id, g.name]));
+  const excludedGoals = exclusions
+    .map((e) => ({
+      goalId: e.goalId,
+      name: goalName[e.goalId] ?? "Goal",
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -117,6 +136,7 @@ export default async function CashflowPage() {
               amountCents: l.amountCents,
             }))}
             hasGoalsToPull={hasGoalsToPull}
+            excludedGoals={excludedGoals}
           />
           <CashflowExpenses
             lines={expenses.map((l) => ({
