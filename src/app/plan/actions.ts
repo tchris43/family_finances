@@ -1,8 +1,8 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { assignments, buckets } from "@/db/schema";
+import { assignments, buckets, plannedExpenses, transactions } from "@/db/schema";
 import { getBucketMonthStats } from "@/lib/ledger";
 import { dollarsToCents, currentMonthKey } from "@/lib/money";
 import { requireSession } from "@/lib/session";
@@ -177,5 +177,64 @@ export async function saveBucketLayout(formData: FormData): Promise<{
 
   revalidatePath("/plan");
   revalidatePath("/");
+  return {};
+}
+
+/**
+ * Delete a bucket. Blocks if any expense transactions still point at it
+ * (history stays intact). Removes planned expenses for the bucket; bucket
+ * assignments cascade so that money returns to Available.
+ */
+export async function deleteBucket(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const { db, householdId } = await requireSession();
+  const bucketId = String(formData.get("bucketId") ?? "");
+  if (!bucketId) return { error: "Bucket required" };
+
+  const [bucket] = await db
+    .select()
+    .from(buckets)
+    .where(
+      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
+    )
+    .limit(1);
+  if (!bucket) return { error: "Bucket not found" };
+
+  const [expenseRow] = await db
+    .select({
+      count: sql<number>`count(*)::int`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.householdId, householdId),
+        eq(transactions.bucketId, bucketId),
+        eq(transactions.type, "expense"),
+      ),
+    );
+  if (Number(expenseRow?.count ?? 0) > 0) {
+    return {
+      error:
+        "This bucket still has expenses. Delete or move those transactions first.",
+    };
+  }
+
+  await db
+    .delete(plannedExpenses)
+    .where(
+      and(
+        eq(plannedExpenses.householdId, householdId),
+        eq(plannedExpenses.bucketId, bucketId),
+      ),
+    );
+
+  await db
+    .delete(buckets)
+    .where(
+      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
+    );
+
+  revalidateMoneyPaths();
   return {};
 }

@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
-import { assignToBucket, transferBucketToBucket } from "@/app/plan/actions";
+import {
+  assignToBucket,
+  deleteBucket,
+  transferBucketToBucket,
+} from "@/app/plan/actions";
 import { formatCents } from "@/lib/money";
 
 type Peer = { id: string; name: string };
@@ -20,6 +24,7 @@ export function BucketRow({
   onDragStart,
   onDragEnd,
   onMoveKind,
+  onDeleted,
 }: {
   bucketId: string;
   name: string;
@@ -33,6 +38,7 @@ export function BucketRow({
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onMoveKind?: (kind: "necessary" | "unnecessary") => void;
+  onDeleted?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"assign" | "transfer">("assign");
@@ -59,6 +65,21 @@ export function BucketRow({
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not transfer");
+    }
+  }
+
+  async function onDelete(formData: FormData) {
+    setError(null);
+    try {
+      const result = await deleteBucket(formData);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDeleted?.();
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete bucket");
     }
   }
 
@@ -221,20 +242,31 @@ export function BucketRow({
             </form>
           )}
 
-          {onMoveKind ? (
-            <button
-              type="button"
-              className="text-xs text-[var(--muted)] hover:text-[var(--accent)]"
-              onClick={() =>
-                onMoveKind(
-                  fundKind === "necessary" ? "unnecessary" : "necessary",
-                )
-              }
-            >
-              Move to{" "}
-              {fundKind === "necessary" ? "Unnecessary" : "Necessary"}
-            </button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            {onMoveKind ? (
+              <button
+                type="button"
+                className="text-xs text-[var(--muted)] hover:text-[var(--accent)]"
+                onClick={() =>
+                  onMoveKind(
+                    fundKind === "necessary" ? "unnecessary" : "necessary",
+                  )
+                }
+              >
+                Move to{" "}
+                {fundKind === "necessary" ? "Unnecessary" : "Necessary"}
+              </button>
+            ) : null}
+            <form action={onDelete}>
+              <input type="hidden" name="bucketId" value={bucketId} />
+              <button
+                type="submit"
+                className="text-xs text-[var(--muted)] hover:text-red-700"
+              >
+                Delete bucket
+              </button>
+            </form>
+          </div>
         </div>
       ) : null}
     </li>

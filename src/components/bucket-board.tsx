@@ -118,6 +118,13 @@ export function BucketBoard({
     persist(nextNecessary, nextUnnecessary);
   }
 
+  function removeBucket(id: string) {
+    const nextNecessary = necessary.filter((b) => b.bucketId !== id);
+    const nextUnnecessary = unnecessary.filter((b) => b.bucketId !== id);
+    setNecessary(nextNecessary);
+    setUnnecessary(nextUnnecessary);
+  }
+
   function renderList(kind: FundKind, list: BucketBoardItem[]) {
     const title = kind === "necessary" ? "Necessary" : "Unnecessary";
     const hint =
@@ -184,6 +191,7 @@ export function BucketBoard({
                   onDragStart={() => onDragStart(bucket.bucketId)}
                   onDragEnd={onDragEnd}
                   onMoveKind={(next) => moveToKind(bucket.bucketId, next)}
+                  onDeleted={() => removeBucket(bucket.bucketId)}
                 />
               </div>
             ))
