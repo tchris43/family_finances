@@ -104,4 +104,6 @@ export async function adjustAccountBalance(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/accounts");
+  revalidatePath("/plan");
+  revalidatePath("/goals");
 }

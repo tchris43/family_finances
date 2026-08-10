@@ -82,7 +82,7 @@ Planned expenses: live under **Plan** or **Home** upcoming — one place, linked
 - **Cashflow line** — forecast-only paycheck / expense / goal monthly amount (not ledger); deleting a goal line does not delete the goal
 
 **Available to Assign (derived):**  
-sum(account starting balances) + income − sum(all assignment amounts). Spending does not change Available. Bucket/goal reassign transfers net to zero in the assignment sum. Account transfers/adjustments do not affect Available. Overspend is allowed (bucket remaining may go negative).
+sum(account starting balances) + income + balance adjustments − sum(all assignment amounts). Spending does not change Available. Raising an account balance (adjustment up) increases Available; lowering it decreases Available (may go negative). Bucket/goal reassign transfers net to zero in the assignment sum. Account transfers do not affect Available. Overspend is allowed (bucket remaining may go negative).
 
 ---
 

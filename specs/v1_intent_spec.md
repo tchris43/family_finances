@@ -36,7 +36,7 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 ## PINNED RULES
 
 1. Entering a paycheck increases **Available to Assign**. Account **starting balances** also increase Available (cash already in the bank is assignable before the first paycheck).
-2. Available changes only from income, starting balances, and **assigns** (Available → bucket/goal). Spending does **not** change Available.
+2. Available changes from income, starting balances, **balance adjustments**, and **assigns** (Available → bucket/goal). Spending does **not** change Available. Adjusting an account balance up/down moves Available by the same delta.
 3. A normal spend updates: the transaction, and the category’s plan bucket (spent / remaining). It does **not** change goals.
 4. Account transfers (including paying a credit card) move money between accounts only — they are **not** spending and do not hit plan buckets as spend.
 5. “Can we afford this?” returns **two** answers: (a) cash / Available now, (b) impact on goals — shown separately.

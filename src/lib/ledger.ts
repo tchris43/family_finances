@@ -26,10 +26,11 @@ export async function getAccountBalanceCents(
 
 /**
  * Available to Assign (derived):
- *   sum(starting balances) + sum(income) − sum(assignments)
+ *   sum(starting balances) + sum(income) + sum(adjustments) − sum(assignments)
  * Spending does not change Available — only assigns do.
+ * Balance adjustments move Available (up if cash was understated, down if overstated).
  * Bucket/goal reassign transfers net to zero in the assignment sum.
- * Account transfers and adjustments do not affect Available.
+ * Account transfers do not affect Available.
  */
 export async function getAvailableToAssignCents(
   db: Db,
@@ -54,6 +55,18 @@ export async function getAvailableToAssignCents(
       ),
     );
 
+  const [adjustmentRow] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.householdId, householdId),
+        eq(transactions.type, "adjustment"),
+      ),
+    );
+
   const [assignRow] = await db
     .select({
       total: sql<number>`coalesce(sum(${assignments.amountCents}), 0)`,
@@ -63,7 +76,8 @@ export async function getAvailableToAssignCents(
 
   return (
     Number(startingRow?.total ?? 0) +
-    Number(incomeRow?.total ?? 0) -
+    Number(incomeRow?.total ?? 0) +
+    Number(adjustmentRow?.total ?? 0) -
     Number(assignRow?.total ?? 0)
   );
 }

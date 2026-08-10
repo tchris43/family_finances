@@ -42,6 +42,7 @@ export function BucketRow({
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"assign" | "transfer">("assign");
+  const [transferDir, setTransferDir] = useState<"out" | "in">("out");
   const [error, setError] = useState<string | null>(null);
 
   async function onAssign(formData: FormData) {
@@ -56,6 +57,14 @@ export function BucketRow({
 
   async function onTransfer(formData: FormData) {
     setError(null);
+    const otherId = String(formData.get("otherBucketId") ?? "");
+    if (transferDir === "out") {
+      formData.set("fromBucketId", bucketId);
+      formData.set("toBucketId", otherId);
+    } else {
+      formData.set("fromBucketId", otherId);
+      formData.set("toBucketId", bucketId);
+    }
     try {
       const result = await transferBucketToBucket(formData);
       if (result.error) {
@@ -202,16 +211,49 @@ export function BucketRow({
             </p>
           ) : (
             <form action={onTransfer} className="grid gap-3">
-              <input type="hidden" name="fromBucketId" value={bucketId} />
               <input type="hidden" name="monthKey" value={monthKey} />
+              <div className="flex flex-wrap gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setTransferDir("in")}
+                  className={`rounded-full px-3 py-1 ${
+                    transferDir === "in"
+                      ? "bg-[var(--accent)] text-white"
+                      : "border border-[var(--border)] text-[var(--muted)]"
+                  }`}
+                >
+                  Into {name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransferDir("out")}
+                  className={`rounded-full px-3 py-1 ${
+                    transferDir === "out"
+                      ? "bg-[var(--accent)] text-white"
+                      : "border border-[var(--border)] text-[var(--muted)]"
+                  }`}
+                >
+                  Out of {name}
+                </button>
+              </div>
               <p className="text-sm text-[var(--muted)]">
-                Move from <strong>{name}</strong> (
-                {formatCents(remainingCents)} left) to another bucket
+                {transferDir === "in" ? (
+                  <>
+                    Pull into <strong>{name}</strong> from another bucket
+                  </>
+                ) : (
+                  <>
+                    Move from <strong>{name}</strong> (
+                    {formatCents(remainingCents)} left) to another bucket
+                  </>
+                )}
               </p>
               <label className="text-sm">
-                <span className="text-[var(--muted)]">To</span>
+                <span className="text-[var(--muted)]">
+                  {transferDir === "in" ? "From" : "To"}
+                </span>
                 <select
-                  name="toBucketId"
+                  name="otherBucketId"
                   required
                   className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2"
                   defaultValue={otherBuckets[0]?.id}
