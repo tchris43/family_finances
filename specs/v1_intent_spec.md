@@ -41,7 +41,7 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 4. Account transfers (including paying a credit card) move money between accounts only — they are **not** spending and do not hit plan buckets as spend.
 5. “Can we afford this?” returns **two** answers: (a) cash / Available now, (b) impact on goals — shown separately.
 6. Goals are funded by assigning Available → Goal, or by transferring from another goal/bucket into the goal.
-7. Spending more than a bucket’s remaining is **blocked** — assign from Available or transfer from another bucket/goal first. No auto-assign on spend.
+7. Overspending a bucket is allowed; remaining may go negative (assign or transfer later to cover).
 8. Assigning **more than Available** is allowed; Available may go negative.
 9. Leftover assigned money in a bucket rolls into the next month’s same bucket.
 10. Goals and plan buckets are separate objects.
@@ -80,11 +80,11 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 **When** I record a $50 groceries spend  
 **Then** a $50 transaction exists, Groceries spent is $50, Groceries remaining is $150
 
-### 5. Spend blocked without funding
+### 5. Spend before / without full funding
 
-**Given** Available to Assign is $500 and Groceries has $0 remaining  
-**When** I try to record a $40 groceries spend  
-**Then** the spend is rejected; Available is still $500; I must assign or transfer into Groceries first
+**Given** Groceries has $0 remaining  
+**When** I record a $40 groceries spend  
+**Then** the spend is allowed and Groceries remaining is −$40 (Available unchanged)
 
 ### 6. Account transfer
 
@@ -146,7 +146,7 @@ V1 must be usable by us from day one. Manual entry only (no bank sync).
 
 | Case | Expected |
 | --- | --- |
-| Spend more than bucket remaining | Blocked; assign or transfer first |
+| Spend more than bucket remaining | Allowed; bucket remaining negative |
 | Assign more than Available | Allowed; Available negative |
 | Account transfer | Not treated as spend |
 | Pay credit card | Treated as account transfer, not spend |

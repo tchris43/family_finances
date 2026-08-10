@@ -130,7 +130,7 @@ export function QuickAddTransaction({
 
             {kind === "expense" ? (
               <p className="mt-3 text-sm text-[var(--muted)]">
-                Bucket must have enough remaining — assign or transfer first.
+                Overspend is fine — the bucket can go negative; assign more later.
               </p>
             ) : null}
 

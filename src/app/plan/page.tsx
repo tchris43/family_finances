@@ -50,7 +50,7 @@ export default async function PlanPage() {
         <h1 className="font-serif text-3xl tracking-tight">Plan</h1>
         <p className="mt-2 text-[var(--muted)]">
           Give every dollar a job. Assign from Available, or transfer between
-          buckets. Spend only works when a bucket has enough remaining.
+          buckets. Unexpected spends are fine — buckets may go negative.
         </p>
 
         <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">

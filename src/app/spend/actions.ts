@@ -4,8 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { accounts, buckets, transactions } from "@/db/schema";
-import { getBucketMonthStats } from "@/lib/ledger";
-import { dollarsToCents, monthKeyFromDate, todayISO } from "@/lib/money";
+import { dollarsToCents, todayISO } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 
 async function assertAccount(householdId: string, accountId: string) {
@@ -67,14 +66,6 @@ export async function createExpense(
     await assertAccount(householdId, accountId);
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid account or bucket" };
-  }
-
-  const monthKey = monthKeyFromDate(date);
-  const { remainingCents } = await getBucketMonthStats(db, bucketId, monthKey);
-  if (amount > remainingCents) {
-    return {
-      error: "Not enough in this bucket. Assign or transfer money first.",
-    };
   }
 
   await db.insert(transactions).values({
