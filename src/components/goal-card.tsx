@@ -146,10 +146,26 @@ export function GoalCard({
         </div>
         <p className="mt-2 text-sm text-[var(--muted)]">
           {formatCents(remainingCents)} left
-          {` · ${formatCents(thisMonthCents)} this month`}
-          {suggestedMonthlyCents != null
-            ? ` · suggest ${formatCents(suggestedMonthlyCents)}/mo`
-            : ""}
+          {suggestedMonthlyCents != null ? (
+            <>
+              {" · "}
+              <span
+                className={
+                  thisMonthCents >= suggestedMonthlyCents
+                    ? "text-teal-800"
+                    : "text-amber-900"
+                }
+              >
+                {formatCents(thisMonthCents)} /{" "}
+                {formatCents(suggestedMonthlyCents)} this month
+                {thisMonthCents >= suggestedMonthlyCents
+                  ? " · met"
+                  : ` · ${formatCents(suggestedMonthlyCents - thisMonthCents)} short`}
+              </span>
+            </>
+          ) : (
+            <> · {formatCents(thisMonthCents)} this month</>
+          )}
           {estimatedCompletion && estimatedCompletion !== "Reached"
             ? ` · est. ${estimatedCompletion}`
             : ""}

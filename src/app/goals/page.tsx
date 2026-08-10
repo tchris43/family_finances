@@ -18,11 +18,6 @@ export default async function GoalsPage() {
     .from(buckets)
     .where(eq(buckets.householdId, householdId));
 
-  const thisMonthTotal = rows.reduce(
-    (sum, row) => sum + row.stats.thisMonthCents,
-    0,
-  );
-
   return (
     <>
       <AppNav availableCents={available} />
@@ -33,21 +28,11 @@ export default async function GoalsPage() {
           goals or buckets. Spends never move goals.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
-            <p className="text-sm text-[var(--muted)]">Available to Assign</p>
-            <p className="mt-1 font-serif text-3xl tabular-nums">
-              {formatCents(available)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
-            <p className="text-sm text-[var(--muted)]">
-              Contributed this month ({monthKey})
-            </p>
-            <p className="mt-1 font-serif text-3xl tabular-nums">
-              {formatCents(thisMonthTotal)}
-            </p>
-          </div>
+        <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
+          <p className="text-sm text-[var(--muted)]">Available to Assign</p>
+          <p className="mt-1 font-serif text-3xl tabular-nums">
+            {formatCents(available)}
+          </p>
         </div>
 
         <ul className="mt-10 grid gap-4">
