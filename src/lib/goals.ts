@@ -1,11 +1,14 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { assignments, goals } from "@/db/schema";
+import { currentMonthKey } from "@/lib/money";
 
 export type GoalStats = {
   currentCents: number;
   remainingCents: number;
   progressRatio: number;
+  /** Net assigns to this goal in the given month (usually current). */
+  thisMonthCents: number;
   suggestedMonthlyCents: number | null;
   monthsRemaining: number | null;
   onTrack: boolean | null;
@@ -26,6 +29,23 @@ export async function getGoalCurrentCents(
   return Number(row?.total ?? 0);
 }
 
+/** Net contribution to a goal in one plan month (assigns in − transfers out). */
+export async function getGoalMonthContributedCents(
+  db: Db,
+  goalId: string,
+  monthKey: string,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${assignments.amountCents}), 0)`,
+    })
+    .from(assignments)
+    .where(
+      and(eq(assignments.goalId, goalId), eq(assignments.monthKey, monthKey)),
+    );
+  return Number(row?.total ?? 0);
+}
+
 export function monthsBetween(from: Date, to: Date): number {
   const years = to.getFullYear() - from.getFullYear();
   const months = to.getMonth() - from.getMonth();
@@ -40,8 +60,14 @@ export async function getGoalStats(
     targetDate: string | null;
     createdAt: Date;
   },
+  monthKey: string = currentMonthKey(),
 ): Promise<GoalStats> {
   const currentCents = await getGoalCurrentCents(db, goal.id);
+  const thisMonthCents = await getGoalMonthContributedCents(
+    db,
+    goal.id,
+    monthKey,
+  );
   const remainingCents = Math.max(goal.targetCents - currentCents, 0);
   const progressRatio =
     goal.targetCents > 0
@@ -53,6 +79,7 @@ export async function getGoalStats(
       currentCents,
       remainingCents,
       progressRatio,
+      thisMonthCents,
       suggestedMonthlyCents: null,
       monthsRemaining: null,
       onTrack: null,
@@ -89,6 +116,7 @@ export async function getGoalStats(
     currentCents,
     remainingCents,
     progressRatio,
+    thisMonthCents,
     suggestedMonthlyCents,
     monthsRemaining,
     onTrack,
@@ -96,7 +124,11 @@ export async function getGoalStats(
   };
 }
 
-export async function listGoalsWithStats(db: Db, householdId: string) {
+export async function listGoalsWithStats(
+  db: Db,
+  householdId: string,
+  monthKey: string = currentMonthKey(),
+) {
   const list = await db
     .select()
     .from(goals)
@@ -106,7 +138,7 @@ export async function listGoalsWithStats(db: Db, householdId: string) {
   return Promise.all(
     list.map(async (goal) => ({
       goal,
-      stats: await getGoalStats(db, goal),
+      stats: await getGoalStats(db, goal, monthKey),
     })),
   );
 }

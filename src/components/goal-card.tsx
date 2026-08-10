@@ -25,6 +25,7 @@ export function GoalCard({
   onTrack,
   estimatedCompletion,
   monthKey,
+  thisMonthCents,
   otherGoals,
   buckets,
 }: {
@@ -40,6 +41,7 @@ export function GoalCard({
   onTrack: boolean | null;
   estimatedCompletion: string | null;
   monthKey: string;
+  thisMonthCents: number;
   otherGoals: Peer[];
   buckets: Peer[];
 }) {
@@ -144,6 +146,7 @@ export function GoalCard({
         </div>
         <p className="mt-2 text-sm text-[var(--muted)]">
           {formatCents(remainingCents)} left
+          {` · ${formatCents(thisMonthCents)} this month`}
           {suggestedMonthlyCents != null
             ? ` · suggest ${formatCents(suggestedMonthlyCents)}/mo`
             : ""}

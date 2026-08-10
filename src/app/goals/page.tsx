@@ -12,11 +12,16 @@ export default async function GoalsPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
   const monthKey = currentMonthKey();
-  const rows = await listGoalsWithStats(db, householdId);
+  const rows = await listGoalsWithStats(db, householdId, monthKey);
   const bucketList = await db
     .select({ id: buckets.id, name: buckets.name })
     .from(buckets)
     .where(eq(buckets.householdId, householdId));
+
+  const thisMonthTotal = rows.reduce(
+    (sum, row) => sum + row.stats.thisMonthCents,
+    0,
+  );
 
   return (
     <>
@@ -28,11 +33,21 @@ export default async function GoalsPage() {
           goals or buckets. Spends never move goals.
         </p>
 
-        <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
-          <p className="text-sm text-[var(--muted)]">Available to Assign</p>
-          <p className="mt-1 font-serif text-3xl tabular-nums">
-            {formatCents(available)}
-          </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
+            <p className="text-sm text-[var(--muted)]">Available to Assign</p>
+            <p className="mt-1 font-serif text-3xl tabular-nums">
+              {formatCents(available)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
+            <p className="text-sm text-[var(--muted)]">
+              Contributed this month ({monthKey})
+            </p>
+            <p className="mt-1 font-serif text-3xl tabular-nums">
+              {formatCents(thisMonthTotal)}
+            </p>
+          </div>
         </div>
 
         <ul className="mt-10 grid gap-4">
@@ -56,6 +71,7 @@ export default async function GoalsPage() {
                 onTrack={stats.onTrack}
                 estimatedCompletion={stats.estimatedCompletion}
                 monthKey={monthKey}
+                thisMonthCents={stats.thisMonthCents}
                 otherGoals={rows
                   .filter((r) => r.goal.id !== goal.id)
                   .map((r) => ({ id: r.goal.id, name: r.goal.name }))}
