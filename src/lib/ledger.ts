@@ -123,6 +123,26 @@ export async function getBucketSpentThroughCents(
   return Number(row?.total ?? 0);
 }
 
+/** Assigns to a bucket in one plan month only (not prior-month rollover). */
+export async function getBucketAssignedInMonthCents(
+  db: Db,
+  bucketId: string,
+  monthKey: string,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${assignments.amountCents}), 0)`,
+    })
+    .from(assignments)
+    .where(
+      and(
+        eq(assignments.bucketId, bucketId),
+        eq(assignments.monthKey, monthKey),
+      ),
+    );
+  return Number(row?.total ?? 0);
+}
+
 export async function getBucketMonthStats(
   db: Db,
   bucketId: string,
@@ -130,9 +150,15 @@ export async function getBucketMonthStats(
 ) {
   const assigned = await getBucketAssignedThroughCents(db, bucketId, monthKey);
   const spent = await getBucketSpentThroughCents(db, bucketId, monthKey);
+  const thisMonthAssignedCents = await getBucketAssignedInMonthCents(
+    db,
+    bucketId,
+    monthKey,
+  );
   return {
     assignedCents: assigned,
     spentCents: spent,
     remainingCents: assigned - spent,
+    thisMonthAssignedCents,
   };
 }

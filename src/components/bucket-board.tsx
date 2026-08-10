@@ -11,6 +11,8 @@ export type BucketBoardItem = {
   assignedCents: number;
   spentCents: number;
   remainingCents: number;
+  thisMonthAssignedCents: number;
+  suggestedCents: number | null;
 };
 
 type FundKind = "necessary" | "unnecessary";
@@ -185,6 +187,8 @@ export function BucketBoard({
                   assignedCents={bucket.assignedCents}
                   spentCents={bucket.spentCents}
                   remainingCents={bucket.remainingCents}
+                  thisMonthAssignedCents={bucket.thisMonthAssignedCents}
+                  suggestedCents={bucket.suggestedCents}
                   monthKey={monthKey}
                   otherBuckets={peersFor(bucket.bucketId)}
                   dragging={draggingId === bucket.bucketId}

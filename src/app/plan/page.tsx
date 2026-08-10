@@ -1,9 +1,9 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { AddBucketForm } from "@/components/add-bucket-form";
 import { AddPlannedExpenseForm } from "@/components/add-planned-expense-form";
 import { AppNav } from "@/components/app-nav";
 import { BucketBoard } from "@/components/bucket-board";
-import { buckets } from "@/db/schema";
+import { buckets, cashflowLines } from "@/db/schema";
 import {
   getAvailableToAssignCents,
   getBucketMonthStats,
@@ -18,16 +18,47 @@ export default async function PlanPage() {
   const monthKey = currentMonthKey();
   const available = await getAvailableToAssignCents(db, householdId);
 
-  const bucketList = await db
-    .select()
-    .from(buckets)
-    .where(eq(buckets.householdId, householdId))
-    .orderBy(asc(buckets.sortOrder), asc(buckets.name));
+  const [bucketList, cashflowExpenses] = await Promise.all([
+    db
+      .select()
+      .from(buckets)
+      .where(eq(buckets.householdId, householdId))
+      .orderBy(asc(buckets.sortOrder), asc(buckets.name)),
+    db
+      .select()
+      .from(cashflowLines)
+      .where(
+        and(
+          eq(cashflowLines.householdId, householdId),
+          eq(cashflowLines.kind, "expense"),
+        ),
+      ),
+  ]);
+
+  const suggestedByBucketId = new Map<string, number>();
+  for (const line of cashflowExpenses) {
+    let bucketId = line.bucketId;
+    if (!bucketId) {
+      const match = bucketList.find(
+        (b) => b.name.toLowerCase() === line.label.toLowerCase(),
+      );
+      bucketId = match?.id ?? null;
+    }
+    if (!bucketId) continue;
+    suggestedByBucketId.set(
+      bucketId,
+      (suggestedByBucketId.get(bucketId) ?? 0) + line.amountCents,
+    );
+  }
 
   const rows = await Promise.all(
     bucketList.map(async (bucket) => {
       const stats = await getBucketMonthStats(db, bucket.id, monthKey);
-      return { bucket, ...stats };
+      return {
+        bucket,
+        ...stats,
+        suggestedCents: suggestedByBucketId.get(bucket.id) ?? null,
+      };
     }),
   );
 
@@ -126,7 +157,8 @@ export default async function PlanPage() {
         <section className="mt-12">
           <h2 className="font-serif text-xl">Buckets</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Month {monthKey} · leftover rolls forward
+            Month {monthKey} · leftover rolls forward · suggestions from
+            Cashflow
           </p>
           {rows.length === 0 ? (
             <p className="mt-4 text-sm text-[var(--muted)]">
@@ -138,12 +170,19 @@ export default async function PlanPage() {
                 key={rows
                   .map(
                     (r) =>
-                      `${r.bucket.id}:${r.bucket.fundKind}:${r.bucket.sortOrder}`,
+                      `${r.bucket.id}:${r.bucket.fundKind}:${r.bucket.sortOrder}:${r.suggestedCents ?? 0}:${r.thisMonthAssignedCents}`,
                   )
                   .join("|")}
                 monthKey={monthKey}
                 initialBuckets={rows.map(
-                  ({ bucket, assignedCents, spentCents, remainingCents }) => ({
+                  ({
+                    bucket,
+                    assignedCents,
+                    spentCents,
+                    remainingCents,
+                    thisMonthAssignedCents,
+                    suggestedCents,
+                  }) => ({
                     bucketId: bucket.id,
                     name: bucket.name,
                     fundKind:
@@ -153,6 +192,8 @@ export default async function PlanPage() {
                     assignedCents,
                     spentCents,
                     remainingCents,
+                    thisMonthAssignedCents,
+                    suggestedCents,
                   }),
                 )}
               />

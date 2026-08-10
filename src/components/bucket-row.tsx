@@ -18,6 +18,8 @@ export function BucketRow({
   assignedCents,
   spentCents,
   remainingCents,
+  thisMonthAssignedCents = 0,
+  suggestedCents = null,
   monthKey,
   otherBuckets,
   dragging,
@@ -32,6 +34,8 @@ export function BucketRow({
   assignedCents: number;
   spentCents: number;
   remainingCents: number;
+  thisMonthAssignedCents?: number;
+  suggestedCents?: number | null;
   monthKey: string;
   otherBuckets: Peer[];
   dragging?: boolean;
@@ -130,6 +134,21 @@ export function BucketRow({
               Assigned {formatCents(assignedCents)} · Spent{" "}
               {formatCents(spentCents)}
             </p>
+            {suggestedCents != null && suggestedCents > 0 ? (
+              <p
+                className={`mt-0.5 text-sm ${
+                  thisMonthAssignedCents >= suggestedCents
+                    ? "text-teal-800"
+                    : "text-amber-900"
+                }`}
+              >
+                {formatCents(thisMonthAssignedCents)} /{" "}
+                {formatCents(suggestedCents)} this month
+                {thisMonthAssignedCents >= suggestedCents
+                  ? " · met"
+                  : ` · ${formatCents(suggestedCents - thisMonthAssignedCents)} short`}
+              </p>
+            ) : null}
           </div>
           <p
             className={`shrink-0 tabular-nums font-medium ${
