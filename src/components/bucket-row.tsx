@@ -133,6 +133,7 @@ export function BucketRow({
             <p className="text-sm text-[var(--muted)]">
               Assigned {formatCents(assignedCents)} · Spent{" "}
               {formatCents(spentCents)}
+              <span className="text-[var(--muted)]"> (this month)</span>
             </p>
             {suggestedCents != null && suggestedCents > 0 ? (
               <p

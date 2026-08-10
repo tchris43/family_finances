@@ -143,22 +143,57 @@ export async function getBucketAssignedInMonthCents(
   return Number(row?.total ?? 0);
 }
 
+/** Expenses on a bucket in one calendar month only. */
+export async function getBucketSpentInMonthCents(
+  db: Db,
+  bucketId: string,
+  monthKey: string,
+): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<number>`coalesce(sum(abs(${transactions.amountCents})), 0)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.bucketId, bucketId),
+        eq(transactions.type, "expense"),
+        sql`to_char(${transactions.date}::timestamp, 'YYYY-MM') = ${monthKey}`,
+      ),
+    );
+  return Number(row?.total ?? 0);
+}
+
+/**
+ * Plan bucket stats for a month.
+ * assignedCents / spentCents = this month only (reset each month).
+ * remainingCents = cumulative assigned − spent through monthKey (leftover rolls).
+ */
 export async function getBucketMonthStats(
   db: Db,
   bucketId: string,
   monthKey: string,
 ) {
-  const assigned = await getBucketAssignedThroughCents(db, bucketId, monthKey);
-  const spent = await getBucketSpentThroughCents(db, bucketId, monthKey);
+  const assignedThrough = await getBucketAssignedThroughCents(
+    db,
+    bucketId,
+    monthKey,
+  );
+  const spentThrough = await getBucketSpentThroughCents(db, bucketId, monthKey);
   const thisMonthAssignedCents = await getBucketAssignedInMonthCents(
     db,
     bucketId,
     monthKey,
   );
+  const thisMonthSpentCents = await getBucketSpentInMonthCents(
+    db,
+    bucketId,
+    monthKey,
+  );
   return {
-    assignedCents: assigned,
-    spentCents: spent,
-    remainingCents: assigned - spent,
+    assignedCents: thisMonthAssignedCents,
+    spentCents: thisMonthSpentCents,
+    remainingCents: assignedThrough - spentThrough,
     thisMonthAssignedCents,
   };
 }

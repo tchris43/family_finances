@@ -157,8 +157,8 @@ export default async function PlanPage() {
         <section className="mt-12">
           <h2 className="font-serif text-xl">Buckets</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Month {monthKey} · leftover rolls forward · suggestions from
-            Cashflow
+            Month {monthKey} · assigned/spent reset each month · leftover rolls
+            forward · suggestions from Cashflow
           </p>
           {rows.length === 0 ? (
             <p className="mt-4 text-sm text-[var(--muted)]">
