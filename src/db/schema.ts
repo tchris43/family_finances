@@ -201,3 +201,17 @@ export const cashflowGoalExclusions = pgTable("cashflow_goal_exclusions", {
     .defaultNow()
     .notNull(),
 });
+
+/** Shared household shopping list. */
+export const shoppingItems = pgTable("shopping_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  householdId: uuid("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  checked: boolean("checked").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

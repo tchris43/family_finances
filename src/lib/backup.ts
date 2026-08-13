@@ -10,6 +10,7 @@ import {
   households,
   notes,
   plannedExpenses,
+  shoppingItems,
   transactions,
   users,
 } from "@/db/schema";
@@ -36,6 +37,7 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
     householdNotes,
     householdCashflow,
     householdCashflowExclusions,
+    householdShopping,
   ] = await Promise.all([
     db.select().from(users).where(eq(users.householdId, householdId)),
     db.select().from(accounts).where(eq(accounts.householdId, householdId)),
@@ -62,6 +64,10 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
       .select()
       .from(cashflowGoalExclusions)
       .where(eq(cashflowGoalExclusions.householdId, householdId)),
+    db
+      .select()
+      .from(shoppingItems)
+      .where(eq(shoppingItems.householdId, householdId)),
   ]);
 
   return {
@@ -87,5 +93,6 @@ export async function buildHouseholdBackup(db: Db, householdId: string) {
     notes: householdNotes,
     cashflowLines: householdCashflow,
     cashflowGoalExclusions: householdCashflowExclusions,
+    shoppingItems: householdShopping,
   };
 }
