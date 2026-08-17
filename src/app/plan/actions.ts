@@ -97,6 +97,70 @@ export async function transferBucketToBucket(
   return {};
 }
 
+/** Record personal money used to cover over-assignment. Raises Available. */
+export async function settlePersonalDebt(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const { db, householdId } = await requireSession();
+  const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
+  const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
+
+  if (amount <= 0) return { error: "Amount must be positive" };
+
+  await db.insert(assignments).values({
+    householdId,
+    bucketId: null,
+    goalId: null,
+    amountCents: -amount,
+    monthKey,
+  });
+
+  revalidateMoneyPaths();
+  return {};
+}
+
+/** Move assigned money from a bucket to settle personal debt. Raises Available. */
+export async function transferBucketToPersonalDebt(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const { db, householdId } = await requireSession();
+  const fromBucketId = String(formData.get("fromBucketId") ?? "");
+  const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
+  const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
+
+  if (amount <= 0) return { error: "Amount must be positive" };
+  if (!fromBucketId) return { error: "Bucket required" };
+
+  const [bucket] = await db
+    .select()
+    .from(buckets)
+    .where(
+      and(eq(buckets.id, fromBucketId), eq(buckets.householdId, householdId)),
+    )
+    .limit(1);
+  if (!bucket) return { error: "Bucket not found" };
+
+  const { remainingCents } = await getBucketMonthStats(
+    db,
+    fromBucketId,
+    monthKey,
+  );
+  if (amount > remainingCents) {
+    return { error: "Not enough remaining in the source bucket" };
+  }
+
+  await db.insert(assignments).values({
+    householdId,
+    bucketId: fromBucketId,
+    goalId: null,
+    amountCents: -amount,
+    monthKey,
+  });
+
+  revalidateMoneyPaths();
+  return {};
+}
+
 export async function createBucket(formData: FormData) {
   const { db, householdId } = await requireSession();
   const name = String(formData.get("name") ?? "").trim();

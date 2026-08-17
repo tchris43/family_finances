@@ -3,6 +3,7 @@ import { AddBucketForm } from "@/components/add-bucket-form";
 import { AddPlannedExpenseForm } from "@/components/add-planned-expense-form";
 import { AppNav } from "@/components/app-nav";
 import { BucketBoard } from "@/components/bucket-board";
+import { SettlePersonalDebtForm } from "@/components/settle-personal-debt-form";
 import { buckets, cashflowLines } from "@/db/schema";
 import {
   getAvailableToAssignCents,
@@ -84,11 +85,23 @@ export default async function PlanPage() {
           buckets. Unexpected spends are fine — buckets may go negative.
         </p>
 
-        <div className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
+        <div
+          className={`mt-8 rounded-lg border p-5 ${
+            available < 0
+              ? "border-amber-300 bg-amber-50/80"
+              : "border-[var(--border)] bg-white/60"
+          }`}
+        >
           <p className="text-sm text-[var(--muted)]">Available to Assign</p>
           <p className="mt-1 font-serif text-3xl tabular-nums">
             {formatCents(available)}
           </p>
+          {available < 0 ? (
+            <SettlePersonalDebtForm
+              monthKey={monthKey}
+              shortfallCents={-available}
+            />
+          ) : null}
         </div>
 
         <section className="mt-10">

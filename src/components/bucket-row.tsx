@@ -6,7 +6,10 @@ import {
   assignToBucket,
   deleteBucket,
   transferBucketToBucket,
+  transferBucketToPersonalDebt,
 } from "@/app/plan/actions";
+
+const PERSONAL_DEBT_DEST = "personal-debt";
 import { formatCents } from "@/lib/money";
 
 type Peer = { id: string; name: string };
@@ -62,6 +65,22 @@ export function BucketRow({
   async function onTransfer(formData: FormData) {
     setError(null);
     const otherId = String(formData.get("otherBucketId") ?? "");
+    if (transferDir === "out" && otherId === PERSONAL_DEBT_DEST) {
+      formData.set("fromBucketId", bucketId);
+      try {
+        const result = await transferBucketToPersonalDebt(formData);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        setOpen(false);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not settle personal debt",
+        );
+      }
+      return;
+    }
     if (transferDir === "out") {
       formData.set("fromBucketId", bucketId);
       formData.set("toBucketId", otherId);
@@ -225,7 +244,7 @@ export function BucketRow({
                 </button>
               </div>
             </form>
-          ) : otherBuckets.length === 0 ? (
+          ) : otherBuckets.length === 0 && transferDir === "in" ? (
             <p className="text-sm text-[var(--muted)]">
               Add another bucket to transfer between categories.
             </p>
@@ -264,7 +283,8 @@ export function BucketRow({
                 ) : (
                   <>
                     Move from <strong>{name}</strong> (
-                    {formatCents(remainingCents)} left) to another bucket
+                    {formatCents(remainingCents)} left) to another bucket or
+                    settle personal debt
                   </>
                 )}
               </p>
@@ -276,8 +296,17 @@ export function BucketRow({
                   name="otherBucketId"
                   required
                   className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-3 py-2"
-                  defaultValue={otherBuckets[0]?.id}
+                  defaultValue={
+                    transferDir === "out"
+                      ? PERSONAL_DEBT_DEST
+                      : otherBuckets[0]?.id
+                  }
                 >
+                  {transferDir === "out" ? (
+                    <option value={PERSONAL_DEBT_DEST}>
+                      Personal debt (settle)
+                    </option>
+                  ) : null}
                   {otherBuckets.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}

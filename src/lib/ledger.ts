@@ -30,6 +30,7 @@ export async function getAccountBalanceCents(
  * Spending does not change Available — only assigns do.
  * Balance adjustments move Available (up if cash was understated, down if overstated).
  * Bucket/goal reassign transfers net to zero in the assignment sum.
+ * Personal debt settlement (negative assignment, no bucket/goal) raises Available.
  * Account transfers do not affect Available.
  */
 export async function getAvailableToAssignCents(
