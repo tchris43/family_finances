@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Family Budget (budget_app)
 
-## Getting Started
+Simple household budget spreadsheet — client-side only. Add categories, track planned vs actual spending, and see what's left over.
 
-First, run the development server:
+**Live data stays in your browser.** This repo is just the app code. Nothing you type into the budget is committed to GitHub.
+
+## What it does
+
+- Add/remove budget rows (category, planned, actual)
+- Auto-calculates totals and leftover
+- Saves to `localStorage` in the browser (persists between visits on the same device)
+
+## Privacy
+
+- **No backend, no database, no accounts**
+- Budget numbers exist only in the user's browser `localStorage`
+- Making this repo public does **not** expose anyone's personal finances
+
+Before publishing, still worth a quick check: no `.env` files, no exported CSVs, no sample data with real numbers in the repo.
+
+## Run locally
+
+Open `index.html` in a browser, or serve the folder:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+python -m http.server 8080
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then visit `http://localhost:8080`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- HTML / CSS / JavaScript
+- `localStorage` for persistence
+- PWA scaffolding (`manifest.json`, `service-worker.js`) — work in progress
 
-## Learn More
+## Author
 
-To learn more about Next.js, take a look at the following resources:
+Taylor Christensen — side project / household tool. Not related to Summit (summitproficiency.com).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Copy this file to `README.md` in [tchris43/budget_app](https://github.com/tchris43/budget_app).*
