@@ -10,19 +10,15 @@ function revalidateShopping() {
 }
 
 export async function addShoppingItem(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const label = String(formData.get("label") ?? "").trim();
   if (!label) throw new Error("Item required");
 
-  const existing = await db
-    .select({ sortOrder: shoppingItems.sortOrder })
-    .from(shoppingItems)
-    .where(eq(shoppingItems.householdId, householdId));
+  const existing = await scoped.select(shoppingItems);
   const nextOrder =
     existing.reduce((max, row) => Math.max(max, row.sortOrder), -1) + 1;
 
-  await db.insert(shoppingItems).values({
-    householdId,
+  await scoped.insert(shoppingItems, {
     label,
     checked: false,
     sortOrder: nextOrder,
@@ -31,41 +27,21 @@ export async function addShoppingItem(formData: FormData) {
 }
 
 export async function toggleShoppingItem(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Item required");
 
-  const [item] = await db
-    .select()
-    .from(shoppingItems)
-    .where(
-      and(eq(shoppingItems.id, id), eq(shoppingItems.householdId, householdId)),
-    )
-    .limit(1);
-  if (!item) throw new Error("Item not found");
-
-  await db
-    .update(shoppingItems)
-    .set({ checked: !item.checked })
-    .where(eq(shoppingItems.id, id));
+  const item = await scoped.requireById(shoppingItems, id, "Item");
+  await scoped.updateById(shoppingItems, id, { checked: !item.checked }, "Item");
   revalidateShopping();
 }
 
 export async function deleteShoppingItem(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Item required");
 
-  const [item] = await db
-    .select()
-    .from(shoppingItems)
-    .where(
-      and(eq(shoppingItems.id, id), eq(shoppingItems.householdId, householdId)),
-    )
-    .limit(1);
-  if (!item) throw new Error("Item not found");
-
-  await db.delete(shoppingItems).where(eq(shoppingItems.id, id));
+  await scoped.deleteById(shoppingItems, id, "Item");
   revalidateShopping();
 }
 

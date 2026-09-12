@@ -54,7 +54,12 @@ export default async function PlanPage() {
 
   const rows = await Promise.all(
     bucketList.map(async (bucket) => {
-      const stats = await getBucketMonthStats(db, bucket.id, monthKey);
+      const stats = await getBucketMonthStats(
+        db,
+        householdId,
+        bucket.id,
+        monthKey,
+      );
       return {
         bucket,
         ...stats,

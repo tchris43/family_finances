@@ -12,6 +12,12 @@ config();
  * transactions, assignments, planned expenses, users).
  */
 async function main() {
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_WIPE) {
+    throw new Error(
+      "Refusing to wipe with NODE_ENV=production. Set ALLOW_WIPE=1 to override.",
+    );
+  }
+
   const url = process.env.DATABASE_URL;
   const email = process.env.SEED_EMAIL?.toLowerCase();
   if (!url) throw new Error("DATABASE_URL missing");

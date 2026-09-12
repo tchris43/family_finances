@@ -15,9 +15,13 @@ export type GoalStats = {
   estimatedCompletion: string | null;
 };
 
-/** Goal progress = sum of assigns to that goal (spends never move goals). */
+/**
+ * Goal progress = sum of assigns to that goal (spends never move goals).
+ * Scoped to the household so a caller can't pass a goal id from elsewhere.
+ */
 export async function getGoalCurrentCents(
   db: Db,
+  householdId: string,
   goalId: string,
 ): Promise<number> {
   const [row] = await db
@@ -25,13 +29,19 @@ export async function getGoalCurrentCents(
       total: sql<number>`coalesce(sum(${assignments.amountCents}), 0)`,
     })
     .from(assignments)
-    .where(eq(assignments.goalId, goalId));
+    .where(
+      and(
+        eq(assignments.householdId, householdId),
+        eq(assignments.goalId, goalId),
+      ),
+    );
   return Number(row?.total ?? 0);
 }
 
 /** Net contribution to a goal in one plan month (assigns in − transfers out). */
 export async function getGoalMonthContributedCents(
   db: Db,
+  householdId: string,
   goalId: string,
   monthKey: string,
 ): Promise<number> {
@@ -41,7 +51,11 @@ export async function getGoalMonthContributedCents(
     })
     .from(assignments)
     .where(
-      and(eq(assignments.goalId, goalId), eq(assignments.monthKey, monthKey)),
+      and(
+        eq(assignments.householdId, householdId),
+        eq(assignments.goalId, goalId),
+        eq(assignments.monthKey, monthKey),
+      ),
     );
   return Number(row?.total ?? 0);
 }
@@ -54,6 +68,7 @@ export function monthsBetween(from: Date, to: Date): number {
 
 export async function getGoalStats(
   db: Db,
+  householdId: string,
   goal: {
     id: string;
     targetCents: number;
@@ -62,9 +77,10 @@ export async function getGoalStats(
   },
   monthKey: string = currentMonthKey(),
 ): Promise<GoalStats> {
-  const currentCents = await getGoalCurrentCents(db, goal.id);
+  const currentCents = await getGoalCurrentCents(db, householdId, goal.id);
   const thisMonthCents = await getGoalMonthContributedCents(
     db,
+    householdId,
     goal.id,
     monthKey,
   );
@@ -138,7 +154,7 @@ export async function listGoalsWithStats(
   return Promise.all(
     list.map(async (goal) => ({
       goal,
-      stats: await getGoalStats(db, goal, monthKey),
+      stats: await getGoalStats(db, householdId, goal, monthKey),
     })),
   );
 }

@@ -1,13 +1,14 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { accounts, transactions } from "@/db/schema";
+import { getAccountBalanceCents } from "@/lib/ledger";
 import { dollarsToCents, todayISO } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 
 export async function createAccount(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
 
   const name = String(formData.get("name") ?? "").trim();
   const type = String(formData.get("type") ?? "checking");
@@ -24,13 +25,9 @@ export async function createAccount(formData: FormData) {
       .where(eq(accounts.householdId, householdId));
   }
 
-  const existing = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.householdId, householdId));
+  const existing = await scoped.select(accounts);
 
-  await db.insert(accounts).values({
-    householdId,
+  await scoped.insert(accounts, {
     name,
     type,
     institution,
@@ -44,26 +41,16 @@ export async function createAccount(formData: FormData) {
 }
 
 export async function setMainAccount(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const accountId = String(formData.get("accountId") ?? "");
 
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(
-      and(eq(accounts.id, accountId), eq(accounts.householdId, householdId)),
-    )
-    .limit(1);
-  if (!account) throw new Error("Account not found");
+  await scoped.requireById(accounts, accountId, "Account");
 
   await db
     .update(accounts)
     .set({ isMain: false })
     .where(eq(accounts.householdId, householdId));
-  await db
-    .update(accounts)
-    .set({ isMain: true })
-    .where(eq(accounts.id, accountId));
+  await scoped.updateById(accounts, accountId, { isMain: true }, "Account");
 
   revalidatePath("/");
   revalidatePath("/accounts");
@@ -71,27 +58,18 @@ export async function setMainAccount(formData: FormData) {
 
 /** Manual balance adjust: writes an adjustment transaction so history stays intact. */
 export async function adjustAccountBalance(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const accountId = String(formData.get("accountId") ?? "");
   const newBalance = dollarsToCents(String(formData.get("newBalance") ?? "0"));
   const date = String(formData.get("date") ?? todayISO());
 
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(
-      and(eq(accounts.id, accountId), eq(accounts.householdId, householdId)),
-    )
-    .limit(1);
-  if (!account) throw new Error("Account not found");
+  await scoped.requireById(accounts, accountId, "Account");
 
-  const { getAccountBalanceCents } = await import("@/lib/ledger");
-  const current = await getAccountBalanceCents(db, accountId);
+  const current = await getAccountBalanceCents(db, householdId, accountId);
   const delta = newBalance - current;
   if (delta === 0) return;
 
-  await db.insert(transactions).values({
-    householdId,
+  await scoped.insert(transactions, {
     accountId,
     bucketId: null,
     type: "adjustment",

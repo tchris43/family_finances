@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local agent noise
 .cursor/*.log
+
+.vercel
+.env*

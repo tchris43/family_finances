@@ -4,6 +4,7 @@ import { auth, signOut } from "@/auth";
 import { deleteTransaction } from "@/app/spend/actions";
 import { AppNav } from "@/components/app-nav";
 import { GettingStarted } from "@/components/getting-started";
+import { OnboardingWalkthrough } from "@/components/onboarding-walkthrough";
 import { QuickAddTransaction } from "@/components/quick-add-transaction";
 import { getDb } from "@/db";
 import { accounts, buckets, households, transactions } from "@/db/schema";
@@ -57,7 +58,7 @@ export default async function HomePage({
   const withBalances = await Promise.all(
     householdAccounts.map(async (account) => ({
       ...account,
-      balanceCents: await getAccountBalanceCents(db, account.id),
+      balanceCents: await getAccountBalanceCents(db, householdId, account.id),
     })),
   );
 
@@ -115,8 +116,13 @@ export default async function HomePage({
   );
   const bucketName = Object.fromEntries(bucketList.map((b) => [b.id, b.name]));
 
+  const showOnboarding = !household?.onboardedAt;
+
   return (
     <>
+      {showOnboarding ? (
+        <OnboardingWalkthrough householdName={household?.name ?? "there"} />
+      ) : null}
       <AppNav availableCents={available} />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <header className="flex flex-wrap items-start justify-between gap-4">

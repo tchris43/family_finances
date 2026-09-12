@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
@@ -18,7 +19,8 @@ export default async function LoginPage({
         Sign in
       </h1>
       <p className="mt-2 text-[var(--muted)]">
-        Shared household login — same email and password for both of you.
+        One shared login per household — the same email and password for everyone
+        in your family.
       </p>
 
       <LoginForm />
@@ -28,6 +30,13 @@ export default async function LoginPage({
           Email or password didn’t match. Try again.
         </p>
       ) : null}
+
+      <p className="mt-6 text-sm text-[var(--muted)]">
+        Have an invite code?{" "}
+        <Link href="/signup" className="text-[var(--accent)] hover:underline">
+          Create your household
+        </Link>
+      </p>
     </main>
   );
 }

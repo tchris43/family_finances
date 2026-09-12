@@ -48,7 +48,12 @@ export async function listPlannedExpensesWithCoverage(
 
     let bucketRemainingCents = remainingCache.get(cacheKey);
     if (bucketRemainingCents === undefined) {
-      const stats = await getBucketMonthStats(db, expense.bucketId, monthKey);
+      const stats = await getBucketMonthStats(
+        db,
+        householdId,
+        expense.bucketId,
+        monthKey,
+      );
       bucketRemainingCents = stats.remainingCents;
       remainingCache.set(cacheKey, bucketRemainingCents);
     }

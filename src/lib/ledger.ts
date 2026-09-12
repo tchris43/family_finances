@@ -2,15 +2,21 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { accounts, assignments, transactions } from "@/db/schema";
 
-/** Balance = starting + sum of signed transaction amounts on the account. */
+/**
+ * Balance = starting + sum of signed transaction amounts on the account.
+ * Scoped to the household so a caller can't pass an id from another household.
+ */
 export async function getAccountBalanceCents(
   db: Db,
+  householdId: string,
   accountId: string,
 ): Promise<number> {
   const [account] = await db
     .select()
     .from(accounts)
-    .where(eq(accounts.id, accountId))
+    .where(
+      and(eq(accounts.id, accountId), eq(accounts.householdId, householdId)),
+    )
     .limit(1);
   if (!account) return 0;
 
@@ -19,7 +25,12 @@ export async function getAccountBalanceCents(
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
     })
     .from(transactions)
-    .where(eq(transactions.accountId, accountId));
+    .where(
+      and(
+        eq(transactions.accountId, accountId),
+        eq(transactions.householdId, householdId),
+      ),
+    );
 
   return account.startingBalanceCents + Number(row?.total ?? 0);
 }
@@ -86,6 +97,7 @@ export async function getAvailableToAssignCents(
 /** Cumulative assign through monthKey (rollover). */
 export async function getBucketAssignedThroughCents(
   db: Db,
+  householdId: string,
   bucketId: string,
   monthKey: string,
 ): Promise<number> {
@@ -96,6 +108,7 @@ export async function getBucketAssignedThroughCents(
     .from(assignments)
     .where(
       and(
+        eq(assignments.householdId, householdId),
         eq(assignments.bucketId, bucketId),
         sql`${assignments.monthKey} <= ${monthKey}`,
       ),
@@ -106,6 +119,7 @@ export async function getBucketAssignedThroughCents(
 /** Cumulative expense through monthKey. */
 export async function getBucketSpentThroughCents(
   db: Db,
+  householdId: string,
   bucketId: string,
   monthKey: string,
 ): Promise<number> {
@@ -116,6 +130,7 @@ export async function getBucketSpentThroughCents(
     .from(transactions)
     .where(
       and(
+        eq(transactions.householdId, householdId),
         eq(transactions.bucketId, bucketId),
         eq(transactions.type, "expense"),
         sql`to_char(${transactions.date}::timestamp, 'YYYY-MM') <= ${monthKey}`,
@@ -127,6 +142,7 @@ export async function getBucketSpentThroughCents(
 /** Assigns to a bucket in one plan month only (not prior-month rollover). */
 export async function getBucketAssignedInMonthCents(
   db: Db,
+  householdId: string,
   bucketId: string,
   monthKey: string,
 ): Promise<number> {
@@ -137,6 +153,7 @@ export async function getBucketAssignedInMonthCents(
     .from(assignments)
     .where(
       and(
+        eq(assignments.householdId, householdId),
         eq(assignments.bucketId, bucketId),
         eq(assignments.monthKey, monthKey),
       ),
@@ -147,6 +164,7 @@ export async function getBucketAssignedInMonthCents(
 /** Expenses on a bucket in one calendar month only. */
 export async function getBucketSpentInMonthCents(
   db: Db,
+  householdId: string,
   bucketId: string,
   monthKey: string,
 ): Promise<number> {
@@ -157,6 +175,7 @@ export async function getBucketSpentInMonthCents(
     .from(transactions)
     .where(
       and(
+        eq(transactions.householdId, householdId),
         eq(transactions.bucketId, bucketId),
         eq(transactions.type, "expense"),
         sql`to_char(${transactions.date}::timestamp, 'YYYY-MM') = ${monthKey}`,
@@ -172,22 +191,31 @@ export async function getBucketSpentInMonthCents(
  */
 export async function getBucketMonthStats(
   db: Db,
+  householdId: string,
   bucketId: string,
   monthKey: string,
 ) {
   const assignedThrough = await getBucketAssignedThroughCents(
     db,
+    householdId,
     bucketId,
     monthKey,
   );
-  const spentThrough = await getBucketSpentThroughCents(db, bucketId, monthKey);
+  const spentThrough = await getBucketSpentThroughCents(
+    db,
+    householdId,
+    bucketId,
+    monthKey,
+  );
   const thisMonthAssignedCents = await getBucketAssignedInMonthCents(
     db,
+    householdId,
     bucketId,
     monthKey,
   );
   const thisMonthSpentCents = await getBucketSpentInMonthCents(
     db,
+    householdId,
     bucketId,
     monthKey,
   );

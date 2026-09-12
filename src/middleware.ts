@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isLogin = pathname.startsWith("/login");
+  const isPublic = isLogin || pathname.startsWith("/signup");
 
   const token = await getToken({
     req,
@@ -18,14 +19,14 @@ export async function middleware(req: NextRequest) {
 
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn && !isLogin) {
+  if (!isLoggedIn && !isPublic) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (isLoggedIn && isLogin) {
+  if (isLoggedIn && isPublic) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

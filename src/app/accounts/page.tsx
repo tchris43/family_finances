@@ -23,7 +23,7 @@ export default async function AccountsPage() {
   const withBalances = await Promise.all(
     list.map(async (account) => ({
       ...account,
-      balanceCents: await getAccountBalanceCents(db, account.id),
+      balanceCents: await getAccountBalanceCents(db, householdId, account.id),
     })),
   );
 

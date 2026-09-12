@@ -14,7 +14,7 @@ function revalidateMoneyPaths() {
 }
 
 export async function assignToBucket(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const bucketId = String(formData.get("bucketId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
   const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
@@ -22,17 +22,9 @@ export async function assignToBucket(formData: FormData) {
   if (amount <= 0) throw new Error("Amount must be positive");
   if (!bucketId) throw new Error("Bucket required");
 
-  const [bucket] = await db
-    .select()
-    .from(buckets)
-    .where(
-      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
-    )
-    .limit(1);
-  if (!bucket) throw new Error("Bucket not found");
+  await scoped.requireById(buckets, bucketId, "Bucket");
 
-  await db.insert(assignments).values({
-    householdId,
+  await scoped.insert(assignments, {
     bucketId,
     goalId: null,
     amountCents: amount,
@@ -46,7 +38,7 @@ export async function assignToBucket(formData: FormData) {
 export async function transferBucketToBucket(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const fromBucketId = String(formData.get("fromBucketId") ?? "");
   const toBucketId = String(formData.get("toBucketId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
@@ -59,16 +51,14 @@ export async function transferBucketToBucket(
   }
 
   for (const id of [fromBucketId, toBucketId]) {
-    const [bucket] = await db
-      .select()
-      .from(buckets)
-      .where(and(eq(buckets.id, id), eq(buckets.householdId, householdId)))
-      .limit(1);
-    if (!bucket) return { error: "Bucket not found" };
+    if (!(await scoped.findById(buckets, id))) {
+      return { error: "Bucket not found" };
+    }
   }
 
   const { remainingCents } = await getBucketMonthStats(
     db,
+    householdId,
     fromBucketId,
     monthKey,
   );
@@ -76,21 +66,9 @@ export async function transferBucketToBucket(
     return { error: "Not enough remaining in the source bucket" };
   }
 
-  await db.insert(assignments).values([
-    {
-      householdId,
-      bucketId: fromBucketId,
-      goalId: null,
-      amountCents: -amount,
-      monthKey,
-    },
-    {
-      householdId,
-      bucketId: toBucketId,
-      goalId: null,
-      amountCents: amount,
-      monthKey,
-    },
+  await scoped.insert(assignments, [
+    { bucketId: fromBucketId, goalId: null, amountCents: -amount, monthKey },
+    { bucketId: toBucketId, goalId: null, amountCents: amount, monthKey },
   ]);
 
   revalidateMoneyPaths();
@@ -101,14 +79,13 @@ export async function transferBucketToBucket(
 export async function settlePersonalDebt(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
   const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
 
   if (amount <= 0) return { error: "Amount must be positive" };
 
-  await db.insert(assignments).values({
-    householdId,
+  await scoped.insert(assignments, {
     bucketId: null,
     goalId: null,
     amountCents: -amount,
@@ -123,7 +100,7 @@ export async function settlePersonalDebt(
 export async function transferBucketToPersonalDebt(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const fromBucketId = String(formData.get("fromBucketId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
   const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
@@ -131,17 +108,13 @@ export async function transferBucketToPersonalDebt(
   if (amount <= 0) return { error: "Amount must be positive" };
   if (!fromBucketId) return { error: "Bucket required" };
 
-  const [bucket] = await db
-    .select()
-    .from(buckets)
-    .where(
-      and(eq(buckets.id, fromBucketId), eq(buckets.householdId, householdId)),
-    )
-    .limit(1);
-  if (!bucket) return { error: "Bucket not found" };
+  if (!(await scoped.findById(buckets, fromBucketId))) {
+    return { error: "Bucket not found" };
+  }
 
   const { remainingCents } = await getBucketMonthStats(
     db,
+    householdId,
     fromBucketId,
     monthKey,
   );
@@ -149,8 +122,7 @@ export async function transferBucketToPersonalDebt(
     return { error: "Not enough remaining in the source bucket" };
   }
 
-  await db.insert(assignments).values({
-    householdId,
+  await scoped.insert(assignments, {
     bucketId: fromBucketId,
     goalId: null,
     amountCents: -amount,
@@ -162,28 +134,18 @@ export async function transferBucketToPersonalDebt(
 }
 
 export async function createBucket(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const fundKindRaw = String(formData.get("fundKind") ?? "necessary");
   const fundKind =
     fundKindRaw === "unnecessary" ? "unnecessary" : "necessary";
   if (!name) throw new Error("Name is required");
 
-  const existing = await db
-    .select({ sortOrder: buckets.sortOrder })
-    .from(buckets)
-    .where(
-      and(eq(buckets.householdId, householdId), eq(buckets.fundKind, fundKind)),
-    );
+  const existing = await scoped.select(buckets, eq(buckets.fundKind, fundKind));
   const nextOrder =
     existing.reduce((max, row) => Math.max(max, row.sortOrder), -1) + 1;
 
-  await db.insert(buckets).values({
-    householdId,
-    name,
-    fundKind,
-    sortOrder: nextOrder,
-  });
+  await scoped.insert(buckets, { name, fundKind, sortOrder: nextOrder });
   revalidatePath("/plan");
   revalidatePath("/");
 }
@@ -195,7 +157,7 @@ export async function createBucket(formData: FormData) {
 export async function saveBucketLayout(formData: FormData): Promise<{
   error?: string;
 }> {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const necessaryIds = String(formData.get("necessaryIds") ?? "")
     .split(",")
     .map((s) => s.trim())
@@ -210,10 +172,7 @@ export async function saveBucketLayout(formData: FormData): Promise<{
     return { error: "Duplicate bucket in layout" };
   }
 
-  const householdBuckets = await db
-    .select()
-    .from(buckets)
-    .where(eq(buckets.householdId, householdId));
+  const householdBuckets = await scoped.select(buckets);
 
   if (allIds.length !== householdBuckets.length) {
     return { error: "Layout is out of date — refresh and try again" };
@@ -226,16 +185,13 @@ export async function saveBucketLayout(formData: FormData): Promise<{
 
   await Promise.all([
     ...necessaryIds.map((id, index) =>
-      db
-        .update(buckets)
-        .set({ fundKind: "necessary", sortOrder: index })
-        .where(and(eq(buckets.id, id), eq(buckets.householdId, householdId))),
+      scoped.updateById(buckets, id, { fundKind: "necessary", sortOrder: index }),
     ),
     ...unnecessaryIds.map((id, index) =>
-      db
-        .update(buckets)
-        .set({ fundKind: "unnecessary", sortOrder: index })
-        .where(and(eq(buckets.id, id), eq(buckets.householdId, householdId))),
+      scoped.updateById(buckets, id, {
+        fundKind: "unnecessary",
+        sortOrder: index,
+      }),
     ),
   ]);
 
@@ -252,18 +208,13 @@ export async function saveBucketLayout(formData: FormData): Promise<{
 export async function deleteBucket(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const bucketId = String(formData.get("bucketId") ?? "");
   if (!bucketId) return { error: "Bucket required" };
 
-  const [bucket] = await db
-    .select()
-    .from(buckets)
-    .where(
-      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
-    )
-    .limit(1);
-  if (!bucket) return { error: "Bucket not found" };
+  if (!(await scoped.findById(buckets, bucketId))) {
+    return { error: "Bucket not found" };
+  }
 
   const [expenseRow] = await db
     .select({
@@ -293,11 +244,7 @@ export async function deleteBucket(
       ),
     );
 
-  await db
-    .delete(buckets)
-    .where(
-      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
-    );
+  await scoped.deleteById(buckets, bucketId, "Bucket");
 
   revalidateMoneyPaths();
   return {};

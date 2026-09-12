@@ -7,21 +7,8 @@ import { accounts, buckets, transactions } from "@/db/schema";
 import { dollarsToCents, todayISO } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 
-async function assertAccount(householdId: string, accountId: string) {
-  const { db } = await requireSession();
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(
-      and(eq(accounts.id, accountId), eq(accounts.householdId, householdId)),
-    )
-    .limit(1);
-  if (!account) throw new Error("Account not found");
-  return account;
-}
-
 export async function createIncome(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const accountId = String(formData.get("accountId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
   const date = String(formData.get("date") ?? todayISO());
@@ -29,10 +16,9 @@ export async function createIncome(formData: FormData) {
   const merchant = String(formData.get("merchant") ?? "").trim() || null;
 
   if (amount <= 0) throw new Error("Amount must be positive");
-  await assertAccount(householdId, accountId);
+  await scoped.requireById(accounts, accountId, "Account");
 
-  await db.insert(transactions).values({
-    householdId,
+  await scoped.insert(transactions, {
     accountId,
     bucketId: null,
     type: "income",
@@ -51,7 +37,7 @@ export async function createIncome(formData: FormData) {
 export async function createExpense(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const accountId = String(formData.get("accountId") ?? "");
   const bucketId = String(formData.get("bucketId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
@@ -62,14 +48,13 @@ export async function createExpense(
   if (amount <= 0) return { error: "Amount must be positive" };
   if (!bucketId) return { error: "Bucket is required" };
   try {
-    await assertBucket(householdId, bucketId);
-    await assertAccount(householdId, accountId);
+    await scoped.requireById(buckets, bucketId, "Bucket");
+    await scoped.requireById(accounts, accountId, "Account");
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Invalid account or bucket" };
   }
 
-  await db.insert(transactions).values({
-    householdId,
+  await scoped.insert(transactions, {
     accountId,
     bucketId,
     type: "expense",
@@ -86,20 +71,8 @@ export async function createExpense(
   return {};
 }
 
-async function assertBucket(householdId: string, bucketId: string) {
-  const { db } = await requireSession();
-  const [bucket] = await db
-    .select()
-    .from(buckets)
-    .where(
-      and(eq(buckets.id, bucketId), eq(buckets.householdId, householdId)),
-    )
-    .limit(1);
-  if (!bucket) throw new Error("Bucket not found");
-}
-
 export async function createTransfer(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const fromAccountId = String(formData.get("fromAccountId") ?? "");
   const toAccountId = String(formData.get("toAccountId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
@@ -110,14 +83,13 @@ export async function createTransfer(formData: FormData) {
   if (fromAccountId === toAccountId) {
     throw new Error("Pick two different accounts");
   }
-  await assertAccount(householdId, fromAccountId);
-  await assertAccount(householdId, toAccountId);
+  await scoped.requireById(accounts, fromAccountId, "Account");
+  await scoped.requireById(accounts, toAccountId, "Account");
 
   const groupId = randomUUID();
 
-  await db.insert(transactions).values([
+  await scoped.insert(transactions, [
     {
-      householdId,
       accountId: fromAccountId,
       bucketId: null,
       type: "transfer",
@@ -128,7 +100,6 @@ export async function createTransfer(formData: FormData) {
       transferGroupId: groupId,
     },
     {
-      householdId,
       accountId: toAccountId,
       bucketId: null,
       type: "transfer",
@@ -146,17 +117,11 @@ export async function createTransfer(formData: FormData) {
 }
 
 export async function deleteTransaction(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Not found");
 
-  const [tx] = await db
-    .select()
-    .from(transactions)
-    .where(
-      and(eq(transactions.id, id), eq(transactions.householdId, householdId)),
-    )
-    .limit(1);
-  if (!tx) throw new Error("Not found");
+  const tx = await scoped.requireById(transactions, id, "Transaction");
 
   if (tx.transferGroupId) {
     await db
@@ -168,7 +133,7 @@ export async function deleteTransaction(formData: FormData) {
         ),
       );
   } else {
-    await db.delete(transactions).where(eq(transactions.id, id));
+    await scoped.deleteById(transactions, id, "Transaction");
   }
 
   revalidatePath("/");

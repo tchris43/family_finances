@@ -1,6 +1,5 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { assignments, buckets, goals } from "@/db/schema";
 import { getGoalCurrentCents } from "@/lib/goals";
@@ -14,7 +13,7 @@ function revalidateMoneyPaths() {
 }
 
 export async function createGoal(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const targetCents = dollarsToCents(String(formData.get("amount") ?? "0"));
   const targetDate = String(formData.get("targetDate") ?? "").trim() || null;
@@ -23,19 +22,13 @@ export async function createGoal(formData: FormData) {
   if (!name) throw new Error("Name required");
   if (targetCents <= 0) throw new Error("Target must be positive");
 
-  await db.insert(goals).values({
-    householdId,
-    name,
-    targetCents,
-    targetDate,
-    priority,
-  });
+  await scoped.insert(goals, { name, targetCents, targetDate, priority });
 
   revalidateMoneyPaths();
 }
 
 export async function assignToGoal(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const goalId = String(formData.get("goalId") ?? "");
   const amount = dollarsToCents(String(formData.get("amount") ?? "0"));
   const monthKey = String(formData.get("monthKey") ?? currentMonthKey());
@@ -43,15 +36,9 @@ export async function assignToGoal(formData: FormData) {
   if (!goalId) throw new Error("Goal required");
   if (amount <= 0) throw new Error("Amount must be positive");
 
-  const [goal] = await db
-    .select()
-    .from(goals)
-    .where(and(eq(goals.id, goalId), eq(goals.householdId, householdId)))
-    .limit(1);
-  if (!goal) throw new Error("Goal not found");
+  await scoped.requireById(goals, goalId, "Goal");
 
-  await db.insert(assignments).values({
-    householdId,
+  await scoped.insert(assignments, {
     bucketId: null,
     goalId,
     amountCents: amount,
@@ -68,7 +55,7 @@ export async function assignToGoal(formData: FormData) {
 export async function transferFromGoal(
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const { db, householdId } = await requireSession();
+  const { db, householdId, scoped } = await requireSession();
   const fromGoalId = String(formData.get("fromGoalId") ?? "");
   const toKind = String(formData.get("toKind") ?? ""); // goal | bucket
   const toId = String(formData.get("toId") ?? "");
@@ -84,65 +71,31 @@ export async function transferFromGoal(
     return { error: "Pick a different goal" };
   }
 
-  const [fromGoal] = await db
-    .select()
-    .from(goals)
-    .where(and(eq(goals.id, fromGoalId), eq(goals.householdId, householdId)))
-    .limit(1);
+  const fromGoal = await scoped.findById(goals, fromGoalId);
   if (!fromGoal) return { error: "Goal not found" };
 
-  const current = await getGoalCurrentCents(db, fromGoalId);
+  const current = await getGoalCurrentCents(db, householdId, fromGoalId);
   if (amount > current) {
     return { error: "Not enough in this goal" };
   }
 
   if (toKind === "goal") {
-    const [toGoal] = await db
-      .select()
-      .from(goals)
-      .where(and(eq(goals.id, toId), eq(goals.householdId, householdId)))
-      .limit(1);
-    if (!toGoal) return { error: "Destination goal not found" };
+    if (!(await scoped.findById(goals, toId))) {
+      return { error: "Destination goal not found" };
+    }
 
-    await db.insert(assignments).values([
-      {
-        householdId,
-        bucketId: null,
-        goalId: fromGoalId,
-        amountCents: -amount,
-        monthKey,
-      },
-      {
-        householdId,
-        bucketId: null,
-        goalId: toId,
-        amountCents: amount,
-        monthKey,
-      },
+    await scoped.insert(assignments, [
+      { bucketId: null, goalId: fromGoalId, amountCents: -amount, monthKey },
+      { bucketId: null, goalId: toId, amountCents: amount, monthKey },
     ]);
   } else {
-    const [toBucket] = await db
-      .select()
-      .from(buckets)
-      .where(and(eq(buckets.id, toId), eq(buckets.householdId, householdId)))
-      .limit(1);
-    if (!toBucket) return { error: "Destination bucket not found" };
+    if (!(await scoped.findById(buckets, toId))) {
+      return { error: "Destination bucket not found" };
+    }
 
-    await db.insert(assignments).values([
-      {
-        householdId,
-        bucketId: null,
-        goalId: fromGoalId,
-        amountCents: -amount,
-        monthKey,
-      },
-      {
-        householdId,
-        bucketId: toId,
-        goalId: null,
-        amountCents: amount,
-        monthKey,
-      },
+    await scoped.insert(assignments, [
+      { bucketId: null, goalId: fromGoalId, amountCents: -amount, monthKey },
+      { bucketId: toId, goalId: null, amountCents: amount, monthKey },
     ]);
   }
 
@@ -151,7 +104,7 @@ export async function transferFromGoal(
 }
 
 export async function updateGoal(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const goalId = String(formData.get("goalId") ?? "");
   const targetCents = dollarsToCents(String(formData.get("amount") ?? "0"));
   const priority = Number(formData.get("priority") ?? 0);
@@ -162,37 +115,22 @@ export async function updateGoal(formData: FormData) {
   if (targetCents <= 0) throw new Error("Target must be positive");
   if (!Number.isFinite(priority)) throw new Error("Priority must be a number");
 
-  const [goal] = await db
-    .select()
-    .from(goals)
-    .where(and(eq(goals.id, goalId), eq(goals.householdId, householdId)))
-    .limit(1);
-  if (!goal) throw new Error("Goal not found");
-
-  await db
-    .update(goals)
-    .set({
-      targetCents,
-      priority: Math.trunc(priority),
-      targetDate,
-    })
-    .where(eq(goals.id, goalId));
+  await scoped.updateById(
+    goals,
+    goalId,
+    { targetCents, priority: Math.trunc(priority), targetDate },
+    "Goal",
+  );
 
   revalidateMoneyPaths();
 }
 
 export async function deleteGoal(formData: FormData) {
-  const { db, householdId } = await requireSession();
+  const { scoped } = await requireSession();
   const goalId = String(formData.get("goalId") ?? "");
+  if (!goalId) throw new Error("Goal required");
 
-  const [goal] = await db
-    .select()
-    .from(goals)
-    .where(and(eq(goals.id, goalId), eq(goals.householdId, householdId)))
-    .limit(1);
-  if (!goal) throw new Error("Goal not found");
-
-  await db.delete(goals).where(eq(goals.id, goalId));
+  await scoped.deleteById(goals, goalId, "Goal");
 
   revalidateMoneyPaths();
 }
