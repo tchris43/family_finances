@@ -2,6 +2,7 @@
 
 import { AddDisclosure } from "@/components/add-disclosure";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import { createGoal } from "@/app/goals/actions";
 
 export function AddGoalForm() {
@@ -36,12 +37,12 @@ export function AddGoalForm() {
             className={field}
           />
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white sm:col-span-2 sm:w-fit"
         >
           Save
-        </button>
+        </SubmitButton>
       </form>
     </AddDisclosure>
   );

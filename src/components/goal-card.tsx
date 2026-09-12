@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import {
   assignToGoal,
   deleteGoal,
@@ -214,12 +215,12 @@ export function GoalCard({
               </p>
               <MoneyAmountInput label="Assign amount" />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Assigning…"
                   className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                 >
                   Assign
-                </button>
+                </SubmitButton>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -264,12 +265,12 @@ export function GoalCard({
                 </label>
                 <MoneyAmountInput label="Transfer amount" />
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingLabel="Transferring…"
                     className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                   >
                     Transfer
-                  </button>
+                  </SubmitButton>
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
@@ -317,12 +318,12 @@ export function GoalCard({
                 />
               </label>
               <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Saving…"
                   className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                 >
                   Save changes
-                </button>
+                </SubmitButton>
                 {saved ? (
                   <span className="text-sm text-teal-800">Saved</span>
                 ) : null}
@@ -332,12 +333,12 @@ export function GoalCard({
 
           <form action={deleteGoal}>
             <input type="hidden" name="goalId" value={goalId} />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Deleting…"
               className="text-xs text-[var(--muted)] hover:text-red-700"
             >
               Delete goal
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : null}

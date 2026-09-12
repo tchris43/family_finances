@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { AddAccountForm } from "@/components/add-account-form";
 import { AppNav } from "@/components/app-nav";
+import { SubmitButton } from "@/components/submit-button";
 import { accounts } from "@/db/schema";
 import {
   getAccountBalanceCents,
@@ -63,12 +64,12 @@ export default async function AccountsPage() {
                 {!account.isMain ? (
                   <form action={setMainAccount}>
                     <input type="hidden" name="accountId" value={account.id} />
-                    <button
-                      type="submit"
+                    <SubmitButton
+                      pendingLabel="Setting…"
                       className="text-sm text-[var(--accent)] hover:underline"
                     >
                       Make Main
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : null}
                 <form
@@ -87,12 +88,12 @@ export default async function AccountsPage() {
                       className="w-32 rounded-md border border-[var(--border)] bg-white px-2 py-1.5"
                     />
                   </label>
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingLabel="Adjusting…"
                     className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
                   >
                     Adjust
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             </li>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import {
   assignToBucket,
   deleteBucket,
@@ -229,12 +230,12 @@ export function BucketRow({
               </p>
               <MoneyAmountInput label="Assign amount" />
               <div className="flex gap-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Assigning…"
                   className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                 >
                   Assign
-                </button>
+                </SubmitButton>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -316,12 +317,12 @@ export function BucketRow({
               </label>
               <MoneyAmountInput label="Transfer amount" />
               <div className="flex gap-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Transferring…"
                   className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
                 >
                   Transfer
-                </button>
+                </SubmitButton>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
@@ -350,12 +351,12 @@ export function BucketRow({
             ) : null}
             <form action={onDelete}>
               <input type="hidden" name="bucketId" value={bucketId} />
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Deleting…"
                 className="text-xs text-[var(--muted)] hover:text-red-700"
               >
                 Delete bucket
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>

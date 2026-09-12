@@ -1,19 +1,57 @@
 "use client";
 
+import { useOptimistic } from "react";
 import {
   addShoppingItem,
   clearCheckedShoppingItems,
   deleteShoppingItem,
   toggleShoppingItem,
 } from "@/app/shopping/actions";
+import { SubmitButton } from "@/components/submit-button";
 
-export function ShoppingList({
-  items,
-}: {
-  items: { id: string; label: string; checked: boolean }[];
-}) {
-  const open = items.filter((i) => !i.checked);
-  const done = items.filter((i) => i.checked);
+type Item = { id: string; label: string; checked: boolean };
+
+type OptimisticAction =
+  | { type: "toggle"; id: string }
+  | { type: "delete"; id: string }
+  | { type: "clearChecked" };
+
+function applyOptimisticAction(items: Item[], action: OptimisticAction): Item[] {
+  switch (action.type) {
+    case "toggle":
+      return items.map((i) =>
+        i.id === action.id ? { ...i, checked: !i.checked } : i,
+      );
+    case "delete":
+      return items.filter((i) => i.id !== action.id);
+    case "clearChecked":
+      return items.filter((i) => !i.checked);
+  }
+}
+
+export function ShoppingList({ items }: { items: Item[] }) {
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    items,
+    applyOptimisticAction,
+  );
+
+  const open = optimisticItems.filter((i) => !i.checked);
+  const done = optimisticItems.filter((i) => i.checked);
+
+  async function handleToggle(formData: FormData) {
+    applyOptimistic({ type: "toggle", id: String(formData.get("id") ?? "") });
+    await toggleShoppingItem(formData);
+  }
+
+  async function handleDelete(formData: FormData) {
+    applyOptimistic({ type: "delete", id: String(formData.get("id") ?? "") });
+    await deleteShoppingItem(formData);
+  }
+
+  async function handleClearChecked() {
+    applyOptimistic({ type: "clearChecked" });
+    await clearCheckedShoppingItems();
+  }
 
   return (
     <div className="space-y-8">
@@ -25,21 +63,26 @@ export function ShoppingList({
           autoComplete="off"
           className="min-w-[12rem] flex-1 rounded-md border border-[var(--border)] bg-white px-3 py-2.5 text-sm"
         />
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Adding…"
           className="rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
         >
           Add
-        </button>
+        </SubmitButton>
       </form>
 
-      {items.length === 0 ? (
+      {optimisticItems.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">List is empty.</p>
       ) : (
         <>
           <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
             {open.map((item) => (
-              <ShoppingRow key={item.id} item={item} />
+              <ShoppingRow
+                key={item.id}
+                item={item}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+              />
             ))}
           </ul>
 
@@ -49,18 +92,23 @@ export function ShoppingList({
                 <h2 className="text-sm font-medium text-[var(--muted)]">
                   Checked off ({done.length})
                 </h2>
-                <form action={clearCheckedShoppingItems}>
-                  <button
-                    type="submit"
+                <form action={handleClearChecked}>
+                  <SubmitButton
+                    pendingLabel="Clearing…"
                     className="text-xs text-[var(--muted)] hover:text-red-700"
                   >
                     Clear checked
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
               <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {done.map((item) => (
-                  <ShoppingRow key={item.id} item={item} />
+                  <ShoppingRow
+                    key={item.id}
+                    item={item}
+                    onToggle={handleToggle}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </ul>
             </section>
@@ -73,12 +121,16 @@ export function ShoppingList({
 
 function ShoppingRow({
   item,
+  onToggle,
+  onDelete,
 }: {
-  item: { id: string; label: string; checked: boolean };
+  item: Item;
+  onToggle: (formData: FormData) => void;
+  onDelete: (formData: FormData) => void;
 }) {
   return (
     <li className="flex items-center gap-3 py-3">
-      <form action={toggleShoppingItem} className="flex min-w-0 flex-1 items-center gap-3">
+      <form action={onToggle} className="flex min-w-0 flex-1 items-center gap-3">
         <input type="hidden" name="id" value={item.id} />
         <button
           type="submit"
@@ -99,7 +151,7 @@ function ShoppingRow({
           {item.label}
         </span>
       </form>
-      <form action={deleteShoppingItem}>
+      <form action={onDelete}>
         <input type="hidden" name="id" value={item.id} />
         <button
           type="submit"

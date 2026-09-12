@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
+import { SubmitButton } from "@/components/submit-button";
 
 export default async function LoginPage({
   searchParams,
@@ -84,12 +85,12 @@ function LoginForm() {
           className="rounded-md border border-[var(--border)] bg-white px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
       </label>
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Signing in…"
         className="mt-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
       >
         Sign in
-      </button>
+      </SubmitButton>
     </form>
   );
 }

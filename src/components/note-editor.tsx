@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteNote, updateNote } from "@/app/notes/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export function NoteEditor({
   note,
@@ -34,12 +35,12 @@ export function NoteEditor({
           className="w-full flex-1 resize-y rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm leading-relaxed"
         />
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Saving…"
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white"
           >
             Save
-          </button>
+          </SubmitButton>
           {saved ? (
             <span className="text-sm text-teal-800">Saved</span>
           ) : null}
@@ -47,12 +48,12 @@ export function NoteEditor({
       </form>
       <form action={deleteNote} className="mt-6">
         <input type="hidden" name="id" value={note.id} />
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Deleting…"
           className="text-xs text-[var(--muted)] hover:text-red-700"
         >
           Delete note
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

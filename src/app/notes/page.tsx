@@ -2,6 +2,7 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { AppNav } from "@/components/app-nav";
 import { NoteEditor } from "@/components/note-editor";
+import { SubmitButton } from "@/components/submit-button";
 import { notes } from "@/db/schema";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { requireSession } from "@/lib/session";
@@ -37,12 +38,12 @@ export default async function NotesPage({
         <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-start">
           <aside className="w-full shrink-0 sm:w-56">
             <form action={createNote}>
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Creating…"
                 className="w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
               >
                 + New note
-              </button>
+              </SubmitButton>
             </form>
             <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
               {list.length === 0 ? (

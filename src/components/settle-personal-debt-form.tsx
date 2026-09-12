@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { settlePersonalDebt } from "@/app/plan/actions";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import { formatCents } from "@/lib/money";
 
 export function SettlePersonalDebtForm({
@@ -52,12 +53,12 @@ export function SettlePersonalDebtForm({
       {error ? <p className="text-sm text-amber-900">{error}</p> : null}
       <MoneyAmountInput label="Settle amount" />
       <div className="flex gap-2">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Settling…"
           className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
         >
           Settle debt
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setOpen(false)}

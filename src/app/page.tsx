@@ -6,6 +6,7 @@ import { AppNav } from "@/components/app-nav";
 import { GettingStarted } from "@/components/getting-started";
 import { OnboardingWalkthrough } from "@/components/onboarding-walkthrough";
 import { QuickAddTransaction } from "@/components/quick-add-transaction";
+import { SubmitButton } from "@/components/submit-button";
 import { getDb } from "@/db";
 import { accounts, buckets, households, transactions } from "@/db/schema";
 import { listGoalsWithStats } from "@/lib/goals";
@@ -151,12 +152,12 @@ export default async function HomePage({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Signing out…"
                 className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
               >
                 Sign out
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </header>
@@ -332,12 +333,12 @@ export default async function HomePage({
                 placeholder="Search merchant, bucket, account…"
                 className="rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm"
               />
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="…"
                 className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm"
               >
                 Search
-              </button>
+              </SubmitButton>
             </form>
           </div>
           <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -380,12 +381,12 @@ export default async function HomePage({
                     </p>
                     <form action={deleteTransaction}>
                       <input type="hidden" name="id" value={tx.id} />
-                      <button
-                        type="submit"
+                      <SubmitButton
+                        pendingLabel="Deleting…"
                         className="text-xs text-[var(--muted)] hover:text-red-700"
                       >
                         Delete
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </li>

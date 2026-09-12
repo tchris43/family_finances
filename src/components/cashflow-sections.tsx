@@ -2,6 +2,7 @@
 
 import { AddDisclosure } from "@/components/add-disclosure";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import {
   addCashflowExpense,
   addCashflowPaycheck,
@@ -45,12 +46,12 @@ export function CashflowPaychecks({ lines }: { lines: Line[] }) {
               />
             </label>
             <MoneyAmountInput label="Monthly amount" />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Saving…"
               className="w-fit rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
               Save
-            </button>
+            </SubmitButton>
           </form>
         </AddDisclosure>
       </div>
@@ -79,12 +80,12 @@ export function CashflowGoals({
         </div>
         {hasGoalsToPull ? (
           <form action={pullGoalsIntoCashflow}>
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Adding…"
               className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:border-[var(--accent)]"
             >
               Add from Goals
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
       </div>
@@ -107,12 +108,12 @@ export function CashflowGoals({
                 <span>{g.name}</span>
                 <form action={restoreGoalToCashflow}>
                   <input type="hidden" name="goalId" value={g.goalId} />
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingLabel="Adding…"
                     className="text-xs text-[var(--accent)] hover:underline"
                   >
                     Add back
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -172,12 +173,12 @@ export function CashflowExpenses({
               <input name="label" placeholder="Optional override" className={field} />
             </label>
             <MoneyAmountInput label="Monthly amount" />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Saving…"
               className="w-fit rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
             >
               Save
-            </button>
+            </SubmitButton>
           </form>
         </AddDisclosure>
       </div>
@@ -245,12 +246,12 @@ function CashflowLineRow({
             className="w-28 rounded-md border border-[var(--border)] bg-white px-2 py-1.5 text-sm tabular-nums"
           />
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-md border border-[var(--border)] px-2 py-1.5 text-xs hover:border-[var(--accent)]"
         >
           Save
-        </button>
+        </SubmitButton>
       </form>
       <div className="flex items-center gap-3">
         <span className="tabular-nums text-sm text-[var(--muted)] sm:hidden">
@@ -258,12 +259,12 @@ function CashflowLineRow({
         </span>
         <form action={deleteCashflowLine}>
           <input type="hidden" name="id" value={line.id} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Deleting…"
             className="text-xs text-[var(--muted)] hover:text-red-700"
           >
             {removeLabel}
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </li>

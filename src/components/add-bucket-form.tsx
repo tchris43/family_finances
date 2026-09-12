@@ -1,6 +1,7 @@
 "use client";
 
 import { AddDisclosure } from "@/components/add-disclosure";
+import { SubmitButton } from "@/components/submit-button";
 import { createBucket } from "@/app/plan/actions";
 
 export function AddBucketForm() {
@@ -27,12 +28,12 @@ export function AddBucketForm() {
             <option value="unnecessary">Unnecessary</option>
           </select>
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
         >
           Save
-        </button>
+        </SubmitButton>
       </form>
     </AddDisclosure>
   );

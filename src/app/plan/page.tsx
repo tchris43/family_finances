@@ -4,6 +4,7 @@ import { AddPlannedExpenseForm } from "@/components/add-planned-expense-form";
 import { AppNav } from "@/components/app-nav";
 import { BucketBoard } from "@/components/bucket-board";
 import { SettlePersonalDebtForm } from "@/components/settle-personal-debt-form";
+import { SubmitButton } from "@/components/submit-button";
 import { buckets, cashflowLines } from "@/db/schema";
 import {
   getAvailableToAssignCents,
@@ -151,12 +152,12 @@ export default async function PlanPage() {
                       </span>
                       <form action={deletePlannedExpense}>
                         <input type="hidden" name="id" value={expense.id} />
-                        <button
-                          type="submit"
+                        <SubmitButton
+                          pendingLabel="Deleting…"
                           className="text-xs text-[var(--muted)] hover:text-red-700"
                         >
                           Delete
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </li>

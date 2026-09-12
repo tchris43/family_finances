@@ -2,6 +2,7 @@
 
 import { AddDisclosure } from "@/components/add-disclosure";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import { createPlannedExpense } from "@/app/plan/planned-expense-actions";
 
 export function AddPlannedExpenseForm({
@@ -53,12 +54,12 @@ export function AddPlannedExpenseForm({
             <option value="yearly">Yearly</option>
           </select>
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white sm:col-span-2 sm:w-fit"
         >
           Save
-        </button>
+        </SubmitButton>
       </form>
     </AddDisclosure>
   );

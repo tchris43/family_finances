@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import { SubmitButton } from "@/components/submit-button";
 import {
   createExpense,
   createIncome,
@@ -169,12 +170,12 @@ export function QuickAddTransaction({
                     className={field}
                   />
                 </label>
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Saving…"
                   className="mt-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
                 >
                   Save income
-                </button>
+                </SubmitButton>
               </form>
             ) : null}
 
@@ -220,12 +221,12 @@ export function QuickAddTransaction({
                   <span className="text-[var(--muted)]">Merchant (optional)</span>
                   <input name="merchant" className={field} />
                 </label>
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Saving…"
                   className="mt-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
                 >
                   Save expense
-                </button>
+                </SubmitButton>
               </form>
             ) : null}
 
@@ -277,12 +278,12 @@ export function QuickAddTransaction({
                       className={field}
                     />
                   </label>
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingLabel="Transferring…"
                     className="mt-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
                   >
                     Transfer
-                  </button>
+                  </SubmitButton>
                 </form>
               )
             ) : null}

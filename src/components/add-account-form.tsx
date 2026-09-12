@@ -1,6 +1,7 @@
 "use client";
 
 import { AddDisclosure } from "@/components/add-disclosure";
+import { SubmitButton } from "@/components/submit-button";
 import { createAccount } from "@/app/accounts/actions";
 
 export function AddAccountForm() {
@@ -43,12 +44,12 @@ export function AddAccountForm() {
           <input name="isMain" type="checkbox" />
           Make Main account
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white sm:col-span-2 sm:w-fit"
         >
           Save
-        </button>
+        </SubmitButton>
       </form>
     </AddDisclosure>
   );
