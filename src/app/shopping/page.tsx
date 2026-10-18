@@ -25,7 +25,7 @@ export default async function ShoppingPage() {
           them.
         </p>
 
-        <div className="mt-8">
+        <div data-tour="shopping" className="mt-8">
           <ShoppingList
             items={items.map((i) => ({
               id: i.id,

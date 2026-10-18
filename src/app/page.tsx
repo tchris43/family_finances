@@ -4,7 +4,7 @@ import { auth, signOut } from "@/auth";
 import { deleteTransaction } from "@/app/spend/actions";
 import { AppNav } from "@/components/app-nav";
 import { GettingStarted } from "@/components/getting-started";
-import { OnboardingWalkthrough } from "@/components/onboarding-walkthrough";
+import { TourSync } from "@/components/guided-tour";
 import { QuickAddTransaction } from "@/components/quick-add-transaction";
 import { SubmitButton } from "@/components/submit-button";
 import { getDb } from "@/db";
@@ -136,9 +136,10 @@ export default async function HomePage({
 
   return (
     <>
-      {showOnboarding ? (
-        <OnboardingWalkthrough householdName={household?.name ?? "there"} />
-      ) : null}
+      <TourSync
+        onboarded={!showOnboarding}
+        householdName={household?.name ?? "there"}
+      />
       <AppNav availableCents={available} />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <header className="flex flex-wrap items-start justify-between gap-4">
@@ -152,14 +153,19 @@ export default async function HomePage({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {main ? (
-              <QuickAddTransaction
-                accounts={householdAccounts.map((a) => ({
-                  id: a.id,
-                  name: a.name,
-                }))}
-                buckets={bucketList.map((b) => ({ id: b.id, name: b.name }))}
-                mainAccountId={main.id}
-              />
+              <span
+                data-tour="add-transaction"
+                className="inline-flex rounded-md"
+              >
+                <QuickAddTransaction
+                  accounts={householdAccounts.map((a) => ({
+                    id: a.id,
+                    name: a.name,
+                  }))}
+                  buckets={bucketList.map((b) => ({ id: b.id, name: b.name }))}
+                  mainAccountId={main.id}
+                />
+              </span>
             ) : null}
             <form
               action={async () => {
@@ -195,7 +201,10 @@ export default async function HomePage({
         />
 
         <section className="mt-10">
-          <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
+          <div
+            data-tour="available"
+            className="rounded-lg border border-[var(--border)] bg-white/60 p-5"
+          >
             <p className="text-sm text-[var(--muted)]">Available to Assign</p>
             <p className="mt-1 font-serif text-3xl tabular-nums">
               {formatCents(available)}

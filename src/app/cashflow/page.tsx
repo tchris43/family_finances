@@ -75,7 +75,7 @@ export default async function CashflowPage() {
           plan to spend — and whether you need more income to stay on track.
         </p>
 
-        <section className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
+        <section data-tour="cashflow" className="mt-8 rounded-lg border border-[var(--border)] bg-white/60 p-5">
           <p className="text-sm text-[var(--muted)]">Monthly leftover</p>
           <p
             className={`mt-1 font-serif text-3xl tabular-nums ${

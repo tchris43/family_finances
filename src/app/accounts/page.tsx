@@ -45,7 +45,7 @@ export default async function AccountsPage() {
           the bank statement disagrees.
         </p>
 
-        <ul className="mt-8 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+        <ul data-tour="accounts" className="mt-8 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {withBalances.map((account) => (
             <li key={account.id} className="space-y-3 py-4">
               <div className="flex items-start justify-between gap-4">

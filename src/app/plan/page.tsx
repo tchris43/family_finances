@@ -173,7 +173,7 @@ export default async function PlanPage() {
           </div>
         </section>
 
-        <section className="mt-12">
+        <section data-tour="buckets" className="mt-12">
           <h2 className="font-serif text-xl">Buckets</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Month {monthKey} · assigned/spent reset each month · leftover rolls

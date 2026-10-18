@@ -30,6 +30,7 @@ export default async function DecisionsPage() {
           </li>
         </ul>
 
+        <div data-tour="decide">
         <AffordabilityCalculator
           availableCents={available}
           goals={goalRows.map(({ goal, stats }) => ({
@@ -42,6 +43,7 @@ export default async function DecisionsPage() {
             suggestedMonthlyCents: stats.suggestedMonthlyCents,
           }))}
         />
+        </div>
       </main>
     </>
   );

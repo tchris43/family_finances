@@ -35,7 +35,7 @@ export default async function GoalsPage() {
           </p>
         </div>
 
-        <ul className="mt-10 grid gap-4">
+        <ul data-tour="goals" className="mt-10 grid gap-4">
           {rows.length === 0 ? (
             <li className="text-sm text-[var(--muted)]">
               No goals yet — add House, Car, Emergency Fund, etc. below.

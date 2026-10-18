@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { GuidedTour } from "@/components/guided-tour";
 
 const links = [
   { href: "/", label: "Home" },
@@ -112,6 +113,7 @@ export function AppNav({
           </ul>
         </nav>
       ) : null}
+      <GuidedTour />
     </header>
   );
 }

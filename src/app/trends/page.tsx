@@ -43,7 +43,7 @@ export default async function TrendsPage() {
           don’t count).
         </p>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-2">
+        <section data-tour="trends" className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-[var(--border)] bg-white/60 p-5">
             <p className="text-sm text-[var(--muted)]">Total spent (all time)</p>
             <p className="mt-1 font-serif text-3xl tabular-nums">
