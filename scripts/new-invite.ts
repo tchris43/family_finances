@@ -1,22 +1,11 @@
 import { config } from "dotenv";
-import { randomInt } from "crypto";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { invites } from "../src/db/schema";
+import { generateInviteCode } from "../src/lib/invite-code";
 
 config({ path: ".env.local" });
 config();
-
-/** Readable code: 4 groups of 4, no ambiguous characters. */
-function generateCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const groups = Array.from({ length: 4 }, () =>
-    Array.from({ length: 4 }, () => alphabet[randomInt(alphabet.length)]).join(
-      "",
-    ),
-  );
-  return groups.join("-");
-}
 
 async function main() {
   const url = process.env.DATABASE_URL;
@@ -24,14 +13,15 @@ async function main() {
 
   const note = process.argv.slice(2).join(" ") || null;
   const db = drizzle(neon(url));
-  const code = generateCode();
+  const code = generateInviteCode();
 
   await db.insert(invites).values({ code, note });
 
   console.log("\nInvite code created:\n");
   console.log(`  ${code}`);
   if (note) console.log(`\n  note: ${note}`);
-  console.log("\nSend this with the signup link: /signup\n");
+  console.log("\nLink: <your-site>/signup?code=" + code);
+  console.log("(Easier: open /admin in the app and tap Create invite link.)\n");
 }
 
 main().catch((err) => {

@@ -31,11 +31,26 @@ export default async function LoginPage({
           Email or password didn’t match. Try again.
         </p>
       ) : null}
+      {params.error === "locked" ? (
+        <p className="mt-6 text-sm text-red-700" role="alert">
+          Too many attempts. Wait 15 minutes and try again, or ask for a
+          password reset link.
+        </p>
+      ) : null}
 
       <p className="mt-6 text-sm text-[var(--muted)]">
-        Have an invite code?{" "}
+        Forgot your password? Ask whoever invited you for a reset link — it
+        takes them a few seconds.
+      </p>
+      <p className="mt-3 text-sm text-[var(--muted)]">
+        Have an invite?{" "}
         <Link href="/signup" className="text-[var(--accent)] hover:underline">
           Create your household
+        </Link>
+      </p>
+      <p className="mt-3 text-xs text-[var(--muted)]">
+        <Link href="/privacy" className="hover:underline">
+          Privacy &amp; how your data is handled
         </Link>
       </p>
     </main>
@@ -57,7 +72,8 @@ function LoginForm() {
       });
     } catch (error) {
       if (error instanceof AuthError) {
-        redirect("/login?error=credentials");
+        const locked = (error as { code?: string }).code === "too_many_attempts";
+        redirect(`/login?error=${locked ? "locked" : "credentials"}`);
       }
       throw error;
     }

@@ -3,18 +3,18 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { and, eq, isNull, sql } from "drizzle-orm";
-import { hash } from "bcryptjs";
 import { z } from "zod";
 import { signIn } from "@/auth";
 import { getDb } from "@/db";
 import { households, invites, users } from "@/db/schema";
 import { seedHouseholdDefaults } from "@/lib/defaults";
+import { hashPassword, passwordSchema } from "@/lib/password";
 
 const schema = z.object({
   code: z.string().trim().min(1, "Enter your invite code"),
   householdName: z.string().trim().max(80).optional(),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordSchema,
 });
 
 export async function signUp(
@@ -60,7 +60,7 @@ export async function signUp(
     .returning();
 
   try {
-    const passwordHash = await hash(password, 12);
+    const passwordHash = await hashPassword(password);
     await db.insert(users).values({
       householdId: household.id,
       email,

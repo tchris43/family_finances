@@ -1,7 +1,27 @@
 import type { NextConfig } from "next";
 
+// CSP is intentionally left out: Next's inline scripts need per-request nonces,
+// and a wrong policy breaks the whole app. The headers below are the safe set.
+const securityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  // Reset links carry a token in the URL — never leak it in a Referer header.
+  { key: "Referrer-Policy", value: "no-referrer" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=()",
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains",
+  },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
 };
 
 export default nextConfig;

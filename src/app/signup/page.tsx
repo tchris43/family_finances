@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { SignupForm } from "./signup-form";
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
+  const { code } = await searchParams;
+
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col justify-center px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-[var(--muted)]">
@@ -11,16 +17,24 @@ export default function SignupPage() {
         Create your household
       </h1>
       <p className="mt-2 text-[var(--muted)]">
-        You need an invite code. Everyone in your household shares one login.
+        Everyone in your household shares one login. Your invite link already
+        has your code filled in.
       </p>
 
-      <SignupForm />
+      <SignupForm defaultCode={(code ?? "").slice(0, 40)} />
 
       <p className="mt-6 text-sm text-[var(--muted)]">
         Already have a household?{" "}
         <Link href="/login" className="text-[var(--accent)] hover:underline">
           Sign in
         </Link>
+      </p>
+      <p className="mt-3 text-xs text-[var(--muted)]">
+        By creating a household you agree to how your data is handled —{" "}
+        <Link href="/privacy" className="hover:underline">
+          read the privacy note
+        </Link>
+        .
       </p>
     </main>
   );

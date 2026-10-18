@@ -47,14 +47,24 @@ See `SECURITY.md` for how tenant isolation is enforced in code.
 
 ## Inviting another household
 
-Signup is invite-only. Generate a single-use code:
+Signup is invite-only. The easy way: sign in as an admin, open **Accounts →
+Open admin** (`/admin`), tap **Create invite link**, and send the link — the
+code is already filled in. Each link works once.
 
-```bash
-npm run invite:new "for the Smiths"
+Command-line alternative: `npm run invite:new "for the Smiths"` prints a code.
+
+## Forgotten password
+
+On `/admin`, tap **Reset password link** next to their login and send them the
+link (one use, 24 hours). They choose a new password and are signed in.
+
+## Making someone an admin
+
+There is no screen for it on purpose. Run once against the database:
+
+```sql
+update users set is_admin = true where email = 'you@example.com';
 ```
-
-Send the printed code plus the `/signup` link. They pick a household name, a
-shared email, and a shared password; the code can't be reused.
 
 ## Notes
 

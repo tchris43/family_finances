@@ -1,7 +1,10 @@
 import { desc, eq } from "drizzle-orm";
+import Link from "next/link";
 import { AddAccountForm } from "@/components/add-account-form";
 import { AppNav } from "@/components/app-nav";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { SubmitButton } from "@/components/submit-button";
+import { isAdminUser } from "@/lib/admin";
 import { accounts } from "@/db/schema";
 import {
   getAccountBalanceCents,
@@ -12,8 +15,9 @@ import { requireSession } from "@/lib/session";
 import { adjustAccountBalance, setMainAccount } from "./actions";
 
 export default async function AccountsPage() {
-  const { householdId, db } = await requireSession();
+  const { householdId, db, session } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
+  const admin = await isAdminUser(session.user.id);
 
   const list = await db
     .select()
@@ -103,6 +107,30 @@ export default async function AccountsPage() {
         <section className="mt-10">
           <AddAccountForm />
         </section>
+
+        <section className="mt-14 border-t border-[var(--border)] pt-10">
+          <h2 className="font-serif text-xl">Password</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Everyone in your household shares this login, so tell them if you
+            change it.
+          </p>
+          <ChangePasswordForm />
+        </section>
+
+        {admin ? (
+          <section className="mt-14 border-t border-[var(--border)] pt-10">
+            <h2 className="font-serif text-xl">Invite friends</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Send invite links and password-reset links.
+            </p>
+            <Link
+              href="/admin"
+              className="mt-4 inline-block rounded-md border border-[var(--border)] px-4 py-2 text-sm hover:border-[var(--accent)]"
+            >
+              Open admin
+            </Link>
+          </section>
+        ) : null}
 
         <section className="mt-14 border-t border-[var(--border)] pt-10">
           <h2 className="font-serif text-xl">Backup</h2>

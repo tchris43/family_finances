@@ -31,9 +31,25 @@ no `CREATEROLE`, no `BYPASSRLS`. See `scripts/create-app-role.sql`.
 Schema migrations (`npm run db:push`) use a separate owner connection string,
 kept out of the deployed app's environment.
 
+## Accounts, admin, and password reset
+
+- **Admin** is the `users.is_admin` flag, checked in the database on every
+  admin page load and every admin server action (never read from the session
+  token). Nothing in the app sets it; grant it by hand:
+  `update users set is_admin = true where email = '...'`.
+- **Password reset** has no email step. An admin makes a reset link on `/admin`
+  and sends it. Only the SHA-256 of the token is stored; links are single-use,
+  expire after 24 hours, and a newer link retires older ones. The password is
+  validated before the token is spent, and the token is claimed atomically.
+- **Sign-in throttle:** 8 failed attempts per email in 15 minutes locks that
+  email out (`login_failures`). A reset link or a correct password after the
+  window clears it. Changing a password in-app is throttled the same way.
+- Security headers are set in `next.config.ts`.
+
 ## Not covered here (tracked separately)
 
 - Row-Level Security as a database-enforced backstop (needs a driver change).
-- Login rate limiting / brute-force protection.
-- Email verification and password reset.
-- Security headers / CSP.
+- Content-Security-Policy (needs per-request nonces to work with Next).
+- Signing out other devices when a password changes — sessions are stateless
+  JWTs, so an old session lives until it expires.
+- Email-based self-service reset / email verification.

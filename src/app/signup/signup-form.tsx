@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { signUp } from "./actions";
 
-export function SignupForm() {
+export function SignupForm({ defaultCode = "" }: { defaultCode?: string }) {
   const [state, action, pending] = useActionState(signUp, undefined);
 
   return (
@@ -13,6 +13,7 @@ export function SignupForm() {
         <input
           name="code"
           required
+          defaultValue={defaultCode}
           autoComplete="off"
           autoCapitalize="characters"
           placeholder="XXXX-XXXX-XXXX-XXXX"
@@ -45,6 +46,7 @@ export function SignupForm() {
           type="password"
           required
           minLength={8}
+          maxLength={72}
           autoComplete="new-password"
           className="rounded-md border border-[var(--border)] bg-white px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />

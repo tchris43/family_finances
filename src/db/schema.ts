@@ -30,11 +30,47 @@ export const users = pgTable(
       .references(() => households.id, { onDelete: "cascade" }),
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
+    /** Can open /admin to create invites and password-reset links. */
+    isAdmin: boolean("is_admin").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (t) => [index("users_household_idx").on(t.householdId)],
+);
+
+/**
+ * Single-use password-reset links an admin hands out. Only the SHA-256 of the
+ * token is stored, so reading this table never yields a usable link.
+ */
+export const passwordResets = pgTable(
+  "password_resets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (t) => [index("password_resets_user_idx").on(t.userId)],
+);
+
+/** Failed sign-ins, used to throttle guessing. Keyed by lowercased email. */
+export const loginFailures = pgTable(
+  "login_failures",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    emailKey: text("email_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("login_failures_email_created_idx").on(t.emailKey, t.createdAt)],
 );
 
 export const accounts = pgTable(

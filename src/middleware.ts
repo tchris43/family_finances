@@ -8,8 +8,14 @@ import type { NextRequest } from "next/server";
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLogin = pathname.startsWith("/login");
-  const isPublic = isLogin || pathname.startsWith("/signup");
+  // Sign-in pages bounce a signed-in user home; /reset and /privacy stay open
+  // to everyone (a reset link must work even if some other login is active).
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const isOpen =
+    isAuthPage ||
+    pathname.startsWith("/reset") ||
+    pathname.startsWith("/privacy");
 
   const token = await getToken({
     req,
@@ -19,14 +25,14 @@ export async function middleware(req: NextRequest) {
 
   const isLoggedIn = !!token;
 
-  if (!isLoggedIn && !isPublic) {
+  if (!isLoggedIn && !isOpen) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (isLoggedIn && isPublic) {
+  if (isLoggedIn && isAuthPage) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

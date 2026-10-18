@@ -21,12 +21,15 @@ export const authConfig = {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
       const { pathname } = request.nextUrl;
-      const isPublic =
+      const isAuthPage =
         pathname.startsWith("/login") || pathname.startsWith("/signup");
-      if (isPublic) {
+      if (isAuthPage) {
         return isLoggedIn
           ? Response.redirect(new URL("/", request.nextUrl))
           : true;
+      }
+      if (pathname.startsWith("/reset") || pathname.startsWith("/privacy")) {
+        return true;
       }
       return isLoggedIn;
     },
