@@ -13,8 +13,9 @@ import {
 } from "@/lib/login-throttle";
 
 const credentialsSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  // Bounded: the email becomes a login_failures key, so don't let it be huge.
+  email: z.string().max(254).email(),
+  password: z.string().min(1).max(200),
 });
 
 class TooManyAttempts extends CredentialsSignin {

@@ -33,14 +33,16 @@ export default async function LoginPage({
       ) : null}
       {params.error === "locked" ? (
         <p className="mt-6 text-sm text-red-700" role="alert">
-          Too many attempts. Wait 15 minutes and try again, or ask for a
-          password reset link.
+          Too many attempts. Wait 15 minutes and try again, or use your
+          recovery code to reset your password.
         </p>
       ) : null}
 
       <p className="mt-6 text-sm text-[var(--muted)]">
-        Forgot your password? Ask whoever invited you for a reset link — it
-        takes them a few seconds.
+        <Link href="/forgot" className="text-[var(--accent)] hover:underline">
+          Forgot your password?
+        </Link>{" "}
+        Use your recovery code — or ask whoever invited you for a reset link.
       </p>
       <p className="mt-3 text-sm text-[var(--muted)]">
         Have an invite?{" "}

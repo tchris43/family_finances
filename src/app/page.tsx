@@ -8,7 +8,13 @@ import { OnboardingWalkthrough } from "@/components/onboarding-walkthrough";
 import { QuickAddTransaction } from "@/components/quick-add-transaction";
 import { SubmitButton } from "@/components/submit-button";
 import { getDb } from "@/db";
-import { accounts, buckets, households, transactions } from "@/db/schema";
+import {
+  accounts,
+  buckets,
+  households,
+  transactions,
+  users,
+} from "@/db/schema";
 import { listGoalsWithStats } from "@/lib/goals";
 import {
   getAccountBalanceCents,
@@ -40,6 +46,15 @@ export default async function HomePage({
     .from(households)
     .where(eq(households.id, householdId))
     .limit(1);
+
+  const [me] = await db
+    .select({ recoveryCodeHash: users.recoveryCodeHash })
+    .from(users)
+    .where(
+      and(eq(users.id, session.user.id), eq(users.householdId, householdId)),
+    )
+    .limit(1);
+  const needsRecoveryCode = !me?.recoveryCodeHash;
 
   const householdAccounts = await db
     .select()
@@ -161,6 +176,17 @@ export default async function HomePage({
             </form>
           </div>
         </header>
+
+        {needsRecoveryCode ? (
+          <Link
+            href="/accounts#recovery"
+            className="mt-6 block rounded-lg border border-amber-300 bg-amber-50/80 p-4 text-sm text-amber-900 hover:border-amber-400"
+          >
+            <span className="font-medium">Save a recovery code</span> so you
+            can never get locked out if you forget your password. Takes a
+            minute →
+          </Link>
+        ) : null}
 
         <GettingStarted
           hasAccounts={householdAccounts.length > 0}

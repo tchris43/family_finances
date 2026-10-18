@@ -55,8 +55,12 @@ Command-line alternative: `npm run invite:new "for the Smiths"` prints a code.
 
 ## Forgotten password
 
-On `/admin`, tap **Reset password link** next to their login and send them the
-link (one use, 24 hours). They choose a new password and are signed in.
+Self-service: each household makes a **recovery code** on Accounts (the Home
+screen and the first-login walkthrough nudge them to). On `/forgot` they enter
+email + code + a new password and are signed in.
+
+If they never saved a code: on `/admin`, tap **Reset password link** next to
+their login and send them the link (one use, 24 hours).
 
 ## Making someone an admin
 

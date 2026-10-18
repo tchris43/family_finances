@@ -41,6 +41,13 @@ kept out of the deployed app's environment.
   and sends it. Only the SHA-256 of the token is stored; links are single-use,
   expire after 24 hours, and a newer link retires older ones. The password is
   validated before the token is spent, and the token is claimed atomically.
+- **Recovery code (self-service):** each household can make a code on the
+  Accounts page (needs the current password). It is shown once and stored as a
+  SHA-256 hash in `users.recovery_code_hash`; `/forgot` takes email + code + new
+  password. It has its own attempt counter (key `recover:<email>`), separate
+  from sign-in, so a sign-in lockout can still be fixed. It is not rotated on
+  use — making a new one replaces it. It is as strong as a second password:
+  treat a leaked code like a leaked password.
 - **Sign-in throttle:** 8 failed attempts per email in 15 minutes locks that
   email out (`login_failures`). A reset link or a correct password after the
   window clears it. Changing a password in-app is throttled the same way.

@@ -13,7 +13,7 @@ export function SignupForm({ defaultCode = "" }: { defaultCode?: string }) {
         <input
           name="code"
           required
-          defaultValue={defaultCode}
+          defaultValue={state?.values?.code ?? defaultCode}
           autoComplete="off"
           autoCapitalize="characters"
           placeholder="XXXX-XXXX-XXXX-XXXX"
@@ -24,6 +24,7 @@ export function SignupForm({ defaultCode = "" }: { defaultCode?: string }) {
         <span className="text-[var(--muted)]">Household name</span>
         <input
           name="householdName"
+          defaultValue={state?.values?.householdName ?? ""}
           placeholder="The Smiths"
           autoComplete="off"
           className="rounded-md border border-[var(--border)] bg-white px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
@@ -35,6 +36,7 @@ export function SignupForm({ defaultCode = "" }: { defaultCode?: string }) {
           name="email"
           type="email"
           required
+          defaultValue={state?.values?.email ?? ""}
           autoComplete="username"
           className="rounded-md border border-[var(--border)] bg-white px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />

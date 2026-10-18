@@ -28,7 +28,11 @@ export const authConfig = {
           ? Response.redirect(new URL("/", request.nextUrl))
           : true;
       }
-      if (pathname.startsWith("/reset") || pathname.startsWith("/privacy")) {
+      if (
+        pathname.startsWith("/reset") ||
+        pathname.startsWith("/forgot") ||
+        pathname.startsWith("/privacy")
+      ) {
         return true;
       }
       return isLoggedIn;

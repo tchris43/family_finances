@@ -54,7 +54,10 @@ export default function PrivacyPage() {
       <h2 className="mt-8 font-serif text-xl">Passwords</h2>
       <p className="mt-2 text-sm leading-relaxed">
         Your household shares one login. You can change the password on the
-        Accounts page. If you forget it, ask the admin for a one-time reset link.
+        Accounts page. You can also make a recovery code there (stored only as a
+        one-way hash, like your password) that lets you reset a forgotten
+        password yourself. If you have neither, ask the admin for a one-time
+        reset link.
       </p>
 
       <Link

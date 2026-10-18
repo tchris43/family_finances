@@ -13,14 +13,27 @@ import { hashPassword, passwordSchema } from "@/lib/password";
 const schema = z.object({
   code: z.string().trim().min(1, "Enter your invite code"),
   householdName: z.string().trim().max(80).optional(),
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  email: z.string().trim().toLowerCase().max(254).email("Enter a valid email"),
   password: passwordSchema,
 });
 
+/** `values` is echoed on errors so React's post-submit form reset doesn't wipe what they typed. */
+export type SignUpResult = {
+  error?: string;
+  values?: { code: string; householdName: string; email: string };
+};
+
 export async function signUp(
-  _prev: { error?: string } | undefined,
+  _prev: SignUpResult | undefined,
   formData: FormData,
-): Promise<{ error?: string }> {
+): Promise<SignUpResult> {
+  const values = {
+    code: String(formData.get("code") ?? ""),
+    householdName: String(formData.get("householdName") ?? ""),
+    email: String(formData.get("email") ?? ""),
+  };
+  const fail = (error: string): SignUpResult => ({ error, values });
+
   const parsed = schema.safeParse({
     code: formData.get("code"),
     householdName: formData.get("householdName"),
@@ -28,7 +41,7 @@ export async function signUp(
     password: formData.get("password"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Check your details" };
+    return fail(parsed.error.issues[0]?.message ?? "Check your details");
   }
   const { code, householdName, email, password } = parsed.data;
 
@@ -40,7 +53,7 @@ export async function signUp(
     .where(eq(users.email, email))
     .limit(1);
   if (existingUser) {
-    return { error: "That email is already registered. Sign in instead." };
+    return fail("That email is already registered. Sign in instead.");
   }
 
   // Claim the invite atomically: only one caller can flip redeemed_at.
@@ -50,7 +63,7 @@ export async function signUp(
     .where(and(eq(invites.code, code), isNull(invites.redeemedAt)))
     .returning({ id: invites.id });
   if (claimed.length === 0) {
-    return { error: "That invite code is invalid or has already been used." };
+    return fail("That invite code is invalid or has already been used.");
   }
   const inviteId = claimed[0].id;
 
@@ -68,10 +81,9 @@ export async function signUp(
     });
     await seedHouseholdDefaults(db, household.id);
   } catch {
-    return {
-      error:
-        "Something went wrong creating your account. Contact whoever sent your invite.",
-    };
+    return fail(
+      "Something went wrong creating your account. Contact whoever sent your invite.",
+    );
   }
 
   await db

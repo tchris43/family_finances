@@ -32,6 +32,8 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     /** Can open /admin to create invites and password-reset links. */
     isAdmin: boolean("is_admin").notNull().default(false),
+    /** SHA-256 of the self-service recovery code; the code itself is shown once. */
+    recoveryCodeHash: text("recovery_code_hash"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

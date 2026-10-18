@@ -3,9 +3,10 @@ import Link from "next/link";
 import { AddAccountForm } from "@/components/add-account-form";
 import { AppNav } from "@/components/app-nav";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import { RecoveryCodeCard } from "@/components/recovery-code-card";
 import { SubmitButton } from "@/components/submit-button";
 import { isAdminUser } from "@/lib/admin";
-import { accounts } from "@/db/schema";
+import { accounts, users } from "@/db/schema";
 import {
   getAccountBalanceCents,
   getAvailableToAssignCents,
@@ -15,9 +16,11 @@ import { requireSession } from "@/lib/session";
 import { adjustAccountBalance, setMainAccount } from "./actions";
 
 export default async function AccountsPage() {
-  const { householdId, db, session } = await requireSession();
+  const { householdId, db, session, scoped } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
   const admin = await isAdminUser(session.user.id);
+  const me = await scoped.findById(users, session.user.id);
+  const hasRecoveryCode = !!me?.recoveryCodeHash;
 
   const list = await db
     .select()
@@ -115,6 +118,17 @@ export default async function AccountsPage() {
             change it.
           </p>
           <ChangePasswordForm />
+        </section>
+
+        <section
+          id="recovery"
+          className="mt-14 border-t border-[var(--border)] pt-10"
+        >
+          <h2 className="font-serif text-xl">Recovery code</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Lets you reset a forgotten password yourself, without asking anyone.
+          </p>
+          <RecoveryCodeCard hasCode={hasRecoveryCode} />
         </section>
 
         {admin ? (

@@ -8,13 +8,15 @@ import type { NextRequest } from "next/server";
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  // Sign-in pages bounce a signed-in user home; /reset and /privacy stay open
-  // to everyone (a reset link must work even if some other login is active).
+  // Sign-in pages bounce a signed-in user home; /reset, /forgot and /privacy
+  // stay open to everyone (a reset link must work even if some other login is
+  // active).
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/signup");
   const isOpen =
     isAuthPage ||
     pathname.startsWith("/reset") ||
+    pathname.startsWith("/forgot") ||
     pathname.startsWith("/privacy");
 
   const token = await getToken({
