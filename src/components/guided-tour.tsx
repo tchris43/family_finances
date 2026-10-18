@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { completeOnboarding } from "@/app/onboarding-actions";
 
@@ -183,6 +190,15 @@ function ShareIcon() {
   );
 }
 
+const WIDE_QUERY = "(min-width: 1024px)";
+function subscribeWide(cb: () => void) {
+  const mq = window.matchMedia(WIDE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+/** Card width on wide screens; the page is shifted left by this much so nothing is covered. */
+const SIDE_CARD_PX = 320;
+
 export function GuidedTour() {
   const router = useRouter();
   const pathname = usePathname();
@@ -190,6 +206,12 @@ export function GuidedTour() {
   const [collapsed, setCollapsed] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [, startTransition] = useTransition();
+  // Wide screens get a side card (takes no page height); narrow ones a bottom dock.
+  const wide = useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE_QUERY).matches,
+    () => false,
+  );
   const dockRef = useRef<HTMLDivElement>(null);
   const scrolledFor = useRef<string | null>(null);
 
@@ -248,31 +270,43 @@ export function GuidedTour() {
   useEffect(() => {
     if (!rect || !stepId || scrolledFor.current === stepId) return;
     scrolledFor.current = stepId;
-    const dockH = dockRef.current?.offsetHeight ?? 0;
+    const dockH = wide ? 0 : (dockRef.current?.offsetHeight ?? 0);
     const clearBottom = window.innerHeight - dockH - 16;
     if (rect.top < 120 || rect.bottom > clearBottom) {
       window.scrollBy({ top: rect.top - 130, behavior: "smooth" });
     }
-  }, [rect, stepId]);
+  }, [rect, stepId, wide]);
   useEffect(() => {
     scrolledFor.current = null;
   }, [stepId]);
 
-  // Reserve room under the page for the dock so no content hides behind it.
+  // Reserve room next to / under the page so no content hides behind the tour.
   useEffect(() => {
     const dock = dockRef.current;
     if (!state || !dock) return;
+    const body = document.body;
+    if (wide) {
+      // The sticky header stays full width; only the page content shifts left.
+      const header = document.querySelector("header");
+      const gutter = collapsed ? "" : `${SIDE_CARD_PX + 24}px`;
+      body.style.paddingRight = gutter;
+      if (header) header.style.marginRight = gutter ? `-${gutter}` : "";
+      return () => {
+        body.style.paddingRight = "";
+        if (header) header.style.marginRight = "";
+      };
+    }
     const apply = () => {
-      document.body.style.paddingBottom = `${dock.offsetHeight + 8}px`;
+      body.style.paddingBottom = `${dock.offsetHeight + 8}px`;
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(dock);
     return () => {
       ro.disconnect();
-      document.body.style.paddingBottom = "";
+      body.style.paddingBottom = "";
     };
-  }, [state, collapsed]);
+  }, [state, collapsed, wide]);
 
   if (!state || !step) return null;
   const ringRect = stepTarget && onStepPage ? rect : null;
@@ -301,9 +335,18 @@ export function GuidedTour() {
         ref={dockRef}
         role="region"
         aria-label="Guided tour"
-        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className={
+          wide
+            ? "fixed right-4 top-28 z-50"
+            : "fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        }
+        style={wide ? { width: SIDE_CARD_PX } : undefined}
       >
-        <div className="mx-auto w-full max-w-xl rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
+        <div
+          className={`rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-[0_8px_30px_rgba(0,0,0,0.18)] ${
+            wide ? "" : "mx-auto w-full max-w-xl"
+          }`}
+        >
           {collapsed ? (
             <div className="flex items-center justify-between gap-3 px-4 py-2.5">
               <p className="min-w-0 truncate text-sm">
@@ -346,7 +389,11 @@ export function GuidedTour() {
                 </div>
               </div>
 
-              <div className="mt-2 max-h-[42vh] overflow-y-auto">
+              <div
+                className={`mt-2 overflow-y-auto ${
+                  wide ? "max-h-[calc(100vh-17rem)]" : "max-h-[30vh]"
+                }`}
+              >
                 <h2 className="font-serif text-lg leading-snug">
                   {step.title}
                 </h2>
@@ -382,7 +429,7 @@ export function GuidedTour() {
                 ) : null}
               </div>
 
-              <div className="mt-3 flex gap-1">
+              <div className="mt-3 flex gap-1 [@media(max-height:600px)]:hidden">
                 {list.map((s, i) => (
                   <span
                     key={s.id}
