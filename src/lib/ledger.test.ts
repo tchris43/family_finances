@@ -96,14 +96,27 @@ describe("getAvailableToAssignCents", () => {
     expect(await getAvailableToAssignCents(db, h)).toBe(0);
   });
 
-  it("adds every account's starting balance, whatever the account type", async () => {
+  it("adds the starting balance of every non-debt account", async () => {
     const h = await f.household();
     await f.account(h, 10_000, "checking");
     await f.account(h, 2_500, "savings");
-    // Suspected bug: a credit card's starting balance raises Available too.
-    await f.account(h, 50_000, "credit");
-    // Fails if: starting balances are dropped, or filtered by account type.
-    expect(await getAvailableToAssignCents(db, h)).toBe(62_500);
+    await f.account(h, 700, "investment");
+    await f.account(h, 30, "other");
+    // Fails if: starting balances are dropped, or a non-debt type gets filtered out.
+    expect(await getAvailableToAssignCents(db, h)).toBe(13_230);
+  });
+
+  it("leaves credit and loan accounts out entirely: starting balance, income and adjustments", async () => {
+    // Taylor's ruling 2026-11-07: debt accounts are not money you can assign.
+    const h = await f.household();
+    await f.account(h, 10_000, "checking");
+    const card = await f.account(h, 50_000, "credit");
+    const loan = await f.account(h, -200_000, "loan");
+    await f.tx(h, card, "income", 4_000, "2026-03-01"); // e.g. a refund posted to the card
+    await f.tx(h, card, "adjustment", 900, "2026-03-02");
+    await f.tx(h, loan, "adjustment", -1_000, "2026-03-02");
+    // Fails if: any of the three sums stops excluding credit/loan accounts.
+    expect(await getAvailableToAssignCents(db, h)).toBe(10_000);
   });
 
   it("adds income; expenses and account transfers don't change it", async () => {

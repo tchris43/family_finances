@@ -9,9 +9,14 @@ Ordered by how likely each is to show a family a wrong number today.
 
 ---
 
-## 1. Credit card and loan balances add to "Available"
+## 1. Credit card and loan balances add to "Available" — FIXED (uncommitted)
 
-**What happens:** Available adds the starting balance of *every* account,
+**Ruling (Taylor, 2026-11-07):** leave credit and loan accounts out of
+Available entirely: starting balance, income, and adjustments. See
+`DEBT_ACCOUNT_TYPES` in `src/lib/ledger.ts`. Investment and "other" accounts
+still count; that wasn't part of the ruling.
+
+**What happened before the fix:** Available adds the starting balance of *every* account,
 whatever its type. The add-account form takes any number and doesn't say which
 sign a debt uses. If someone owes $500 on a credit card and enters `500`,
 Available goes **up** $500, as if the debt were cash. Investment accounts count

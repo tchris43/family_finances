@@ -1,6 +1,14 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { accounts, assignments, transactions } from "@/db/schema";
+
+/**
+ * Account types that hold debt, not money. They're left out of Available
+ * entirely (Taylor's ruling 2026-11-07); their own balances still work.
+ * AUDIT: matched against accounts.type as stored. A new debt type (e.g.
+ * "mortgage") must be added here, or it will silently count as cash again.
+ */
+export const DEBT_ACCOUNT_TYPES = ["credit", "loan"];
 
 /**
  * Balance = starting + sum of signed transaction amounts on the account.
@@ -38,6 +46,7 @@ export async function getAccountBalanceCents(
 /**
  * Available to Assign (derived):
  *   sum(starting balances) + sum(income) + sum(adjustments) − sum(assignments)
+ * The first three skip credit/loan accounts entirely (DEBT_ACCOUNT_TYPES).
  * Spending does not change Available — only assigns do.
  * Balance adjustments move Available (up if cash was understated, down if overstated).
  * Bucket/goal reassign transfers net to zero in the assignment sum.
@@ -53,17 +62,25 @@ export async function getAvailableToAssignCents(
       total: sql<number>`coalesce(sum(${accounts.startingBalanceCents}), 0)`,
     })
     .from(accounts)
-    .where(eq(accounts.householdId, householdId));
+    .where(
+      and(
+        eq(accounts.householdId, householdId),
+        notInArray(accounts.type, DEBT_ACCOUNT_TYPES),
+      ),
+    );
 
+  // Income and adjustments are joined to their account so debt accounts' rows drop out.
   const [incomeRow] = await db
     .select({
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
     })
     .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(
       and(
         eq(transactions.householdId, householdId),
         eq(transactions.type, "income"),
+        notInArray(accounts.type, DEBT_ACCOUNT_TYPES),
       ),
     );
 
@@ -72,10 +89,12 @@ export async function getAvailableToAssignCents(
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
     })
     .from(transactions)
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(
       and(
         eq(transactions.householdId, householdId),
         eq(transactions.type, "adjustment"),
+        notInArray(accounts.type, DEBT_ACCOUNT_TYPES),
       ),
     );
 
