@@ -11,7 +11,7 @@ import {
 } from "@/app/plan/actions";
 
 const PERSONAL_DEBT_DEST = "personal-debt";
-import { formatCents } from "@/lib/money";
+import { dollarsToCents, formatCents } from "@/lib/money";
 
 type Peer = { id: string; name: string };
 
@@ -31,6 +31,7 @@ export function BucketRow({
   onDragEnd,
   onMoveKind,
   onDeleted,
+  onOptimisticMove,
 }: {
   bucketId: string;
   name: string;
@@ -47,6 +48,8 @@ export function BucketRow({
   onDragEnd?: () => void;
   onMoveKind?: (kind: "necessary" | "unnecessary") => void;
   onDeleted?: () => void;
+  /** Show a bucket→bucket move right away, before the server confirms it. */
+  onOptimisticMove?: (fromId: string, toId: string, cents: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"assign" | "transfer">("assign");
@@ -88,6 +91,16 @@ export function BucketRow({
     } else {
       formData.set("fromBucketId", otherId);
       formData.set("toBucketId", bucketId);
+    }
+    // Only bucket→bucket is instant; settling personal debt (above) also moves
+    // Available, which lives outside this board.
+    const cents = dollarsToCents(String(formData.get("amount") ?? "0"));
+    if (cents > 0) {
+      onOptimisticMove?.(
+        String(formData.get("fromBucketId")),
+        String(formData.get("toBucketId")),
+        cents,
+      );
     }
     try {
       const result = await transferBucketToBucket(formData);

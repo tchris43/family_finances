@@ -1,11 +1,12 @@
 import { and, desc, eq, ilike, inArray, or, SQL } from "drizzle-orm";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
-import { deleteTransaction } from "@/app/spend/actions";
 import { AppNav } from "@/components/app-nav";
 import { GettingStarted } from "@/components/getting-started";
 import { TourSync } from "@/components/guided-tour";
+import { OptimisticTransactionsProvider } from "@/components/optimistic-transactions";
 import { QuickAddTransaction } from "@/components/quick-add-transaction";
+import { RecentActivityList } from "@/components/recent-activity";
 import { SubmitButton } from "@/components/submit-button";
 import { getDb } from "@/db";
 import {
@@ -141,6 +142,19 @@ export default async function HomePage({
         householdName={household?.name ?? "there"}
       />
       <AppNav availableCents={available} />
+      <OptimisticTransactionsProvider
+        searching={!!query}
+        transactions={txList.map((tx) => ({
+          id: tx.id,
+          type: tx.type,
+          amountCents: tx.amountCents,
+          date: tx.date,
+          merchant: tx.merchant,
+          notes: tx.notes,
+          accountId: tx.accountId,
+          bucketId: tx.bucketId,
+        }))}
+      >
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -376,60 +390,14 @@ export default async function HomePage({
               </SubmitButton>
             </form>
           </div>
-          <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-            {txList.length === 0 ? (
-              <li className="py-4 text-sm text-[var(--muted)]">
-                {query
-                  ? "No matches."
-                  : "No transactions yet — use + Transaction."}
-              </li>
-            ) : (
-              txList.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="flex items-start justify-between gap-4 py-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {tx.merchant ||
-                        (tx.type === "transfer"
-                          ? "Transfer"
-                          : tx.type === "adjustment"
-                            ? "Balance adjustment"
-                            : tx.type)}
-                    </p>
-                    <p className="text-sm text-[var(--muted)]">
-                      {tx.date} · {accountName[tx.accountId] ?? "Account"}
-                      {tx.bucketId
-                        ? ` · ${bucketName[tx.bucketId] ?? "Bucket"}`
-                        : ""}
-                      {tx.notes ? ` · ${tx.notes}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <p
-                      className={`tabular-nums ${
-                        tx.amountCents < 0 ? "text-red-800" : ""
-                      }`}
-                    >
-                      {formatCents(tx.amountCents)}
-                    </p>
-                    <form action={deleteTransaction}>
-                      <input type="hidden" name="id" value={tx.id} />
-                      <SubmitButton
-                        pendingLabel="Deleting…"
-                        className="text-xs text-[var(--muted)] hover:text-red-700"
-                      >
-                        Delete
-                      </SubmitButton>
-                    </form>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
+          <RecentActivityList
+            accountName={accountName}
+            bucketName={bucketName}
+            searching={!!query}
+          />
         </section>
       </main>
+      </OptimisticTransactionsProvider>
     </>
   );
 }

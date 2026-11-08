@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { MoneyAmountInput } from "@/components/money-amount-input";
+import {
+  useOptimisticTransactions,
+  type ActivityTx,
+} from "@/components/optimistic-transactions";
+import { dollarsToCents } from "@/lib/money";
 import { SubmitButton } from "@/components/submit-button";
 import {
   createExpense,
@@ -26,6 +31,7 @@ export function QuickAddTransaction({
     "expense",
   );
   const [error, setError] = useState<string | null>(null);
+  const { addOptimistic } = useOptimisticTransactions();
 
   if (accounts.length === 0) {
     return (
@@ -40,6 +46,7 @@ export function QuickAddTransaction({
 
   async function onIncome(formData: FormData) {
     setError(null);
+    addOptimistic([pendingRow(formData, "income", 1, formData.get("accountId"))]);
     try {
       await createIncome(formData);
       setOpen(false);
@@ -49,6 +56,7 @@ export function QuickAddTransaction({
   }
   async function onExpense(formData: FormData) {
     setError(null);
+    addOptimistic([pendingRow(formData, "expense", -1, formData.get("accountId"))]);
     try {
       const result = await createExpense(formData);
       if (result.error) {
@@ -62,6 +70,11 @@ export function QuickAddTransaction({
   }
   async function onTransfer(formData: FormData) {
     setError(null);
+    // The server writes two rows (out of one account, into the other); mirror both.
+    addOptimistic([
+      pendingRow(formData, "transfer", -1, formData.get("fromAccountId")),
+      pendingRow(formData, "transfer", 1, formData.get("toAccountId")),
+    ]);
     try {
       await createTransfer(formData);
       setOpen(false);
@@ -292,6 +305,32 @@ export function QuickAddTransaction({
       ) : null}
     </div>
   );
+}
+
+/**
+ * The row the server is about to write, built from the submitted form so it
+ * shows immediately. If the save fails, React drops it when the action ends.
+ * AUDIT: must mirror the sign rules in spend/actions.ts (expense and transfer-out
+ * negative, income and transfer-in positive) or the pending amount will flash wrong.
+ */
+function pendingRow(
+  formData: FormData,
+  type: "income" | "expense" | "transfer",
+  sign: 1 | -1,
+  accountId: FormDataEntryValue | null,
+): ActivityTx {
+  const merchant = String(formData.get("merchant") ?? "").trim() || null;
+  return {
+    id: `pending-${crypto.randomUUID()}`,
+    type,
+    amountCents: sign * Math.abs(dollarsToCents(String(formData.get("amount") ?? "0"))),
+    date: String(formData.get("date") ?? todayLocal()),
+    merchant: type === "transfer" ? null : merchant,
+    notes: String(formData.get("notes") ?? "").trim() || null,
+    accountId: String(accountId ?? ""),
+    bucketId: type === "expense" ? String(formData.get("bucketId") ?? "") || null : null,
+    pending: true,
+  };
 }
 
 function todayLocal() {

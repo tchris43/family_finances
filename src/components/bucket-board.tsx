@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { BucketRow } from "@/components/bucket-row";
 import { saveBucketLayout } from "@/app/plan/actions";
 
@@ -16,6 +16,34 @@ export type BucketBoardItem = {
 };
 
 type FundKind = "necessary" | "unnecessary";
+
+/** A bucket→bucket move the server hasn't confirmed yet. */
+type PendingMove = { fromId: string; toId: string; cents: number };
+
+/**
+ * Mirrors what plan/actions.ts transferBucketToBucket writes: a -cents
+ * assignment on the source and +cents on the target, both in this month.
+ * AUDIT: if that action ever changes which totals a transfer touches, change
+ * this too, or the instant numbers will briefly disagree with the real ones.
+ */
+function applyMoves(list: BucketBoardItem[], moves: PendingMove[]): BucketBoardItem[] {
+  if (moves.length === 0) return list;
+  return list.map((b) => {
+    let delta = 0;
+    for (const m of moves) {
+      if (m.fromId === b.bucketId) delta -= m.cents;
+      if (m.toId === b.bucketId) delta += m.cents;
+    }
+    return delta === 0
+      ? b
+      : {
+          ...b,
+          assignedCents: b.assignedCents + delta,
+          remainingCents: b.remainingCents + delta,
+          thisMonthAssignedCents: b.thisMonthAssignedCents + delta,
+        };
+  });
+}
 
 export function BucketBoard({
   initialBuckets,
@@ -37,6 +65,15 @@ export function BucketBoard({
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Same pattern as the shopping list: the move shows at once, and React drops
+  // it when the action ends — by then the server's numbers have replaced it,
+  // or (on an error) the old numbers come back.
+  const [pendingMoves, addPendingMove] = useOptimistic(
+    [] as PendingMove[],
+    (moves: PendingMove[], move: PendingMove) => [...moves, move],
+  );
+  const shownNecessary = applyMoves(necessary, pendingMoves);
+  const shownUnnecessary = applyMoves(unnecessary, pendingMoves);
 
   const byId = useMemo(() => {
     const map = new Map<string, BucketBoardItem>();
@@ -196,6 +233,9 @@ export function BucketBoard({
                   onDragEnd={onDragEnd}
                   onMoveKind={(next) => moveToKind(bucket.bucketId, next)}
                   onDeleted={() => removeBucket(bucket.bucketId)}
+                  onOptimisticMove={(fromId, toId, cents) =>
+                    addPendingMove({ fromId, toId, cents })
+                  }
                 />
               </div>
             ))
@@ -215,8 +255,8 @@ export function BucketBoard({
         {pending ? " Saving…" : ""}
       </p>
       {error ? <p className="mt-2 text-sm text-amber-900">{error}</p> : null}
-      {renderList("necessary", necessary)}
-      {renderList("unnecessary", unnecessary)}
+      {renderList("necessary", shownNecessary)}
+      {renderList("unnecessary", shownUnnecessary)}
     </div>
   );
 }
