@@ -43,53 +43,46 @@ async function HomePage({
 
   const db = getDb();
 
-  const [household] = await db
-    .select()
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-
-  const [me] = await db
-    .select({ recoveryCodeHash: users.recoveryCodeHash })
-    .from(users)
-    .where(
-      and(eq(users.id, session.user.id), eq(users.householdId, householdId)),
-    )
-    .limit(1);
+  // Everything here is independent, so it all loads at the same time.
+  // AUDIT: these were sequential awaits; nothing below reads another's
+  // result except the account balances and the search (second round).
+  const [
+    [household],
+    [me],
+    householdAccounts,
+    bucketList,
+    available,
+    goalRows,
+    upcomingBills,
+    [anyTx],
+  ] = await Promise.all([
+    db.select().from(households).where(eq(households.id, householdId)).limit(1),
+    db
+      .select({ recoveryCodeHash: users.recoveryCodeHash })
+      .from(users)
+      .where(
+        and(eq(users.id, session.user.id), eq(users.householdId, householdId)),
+      )
+      .limit(1),
+    db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.householdId, householdId))
+      .orderBy(desc(accounts.isMain)),
+    db.select().from(buckets).where(eq(buckets.householdId, householdId)),
+    getAvailableToAssignCents(db, householdId),
+    listGoalsWithStats(db, householdId),
+    listUpcomingPlannedExpenses(db, householdId, 5),
+    db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(eq(transactions.householdId, householdId))
+      .limit(1),
+  ]);
   const needsRecoveryCode = !me?.recoveryCodeHash;
-
-  const householdAccounts = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.householdId, householdId))
-    .orderBy(desc(accounts.isMain));
-
-  const bucketList = await db
-    .select()
-    .from(buckets)
-    .where(eq(buckets.householdId, householdId));
-
-  const available = await getAvailableToAssignCents(db, householdId);
-  const goalRows = await listGoalsWithStats(db, householdId);
-  const upcomingBills = await listUpcomingPlannedExpenses(db, householdId, 5);
-
-  const withBalances = await Promise.all(
-    householdAccounts.map(async (account) => ({
-      ...account,
-      balanceCents: await getAccountBalanceCents(db, householdId, account.id),
-    })),
-  );
-
-  const main = withBalances.find((a) => a.isMain) ?? withBalances[0];
+  const hasTransactions = !!anyTx;
 
   const query = (q ?? "").trim();
-
-  const [anyTx] = await db
-    .select({ id: transactions.id })
-    .from(transactions)
-    .where(eq(transactions.householdId, householdId))
-    .limit(1);
-  const hasTransactions = !!anyTx;
 
   const matchingBucketIds = query
     ? bucketList
@@ -115,19 +108,30 @@ async function HomePage({
     }
   }
 
-  const txList = await db
-    .select()
-    .from(transactions)
-    .where(
-      query
-        ? and(
-            eq(transactions.householdId, householdId),
-            or(...searchParts),
-          )
-        : eq(transactions.householdId, householdId),
-    )
-    .orderBy(desc(transactions.date), desc(transactions.createdAt))
-    .limit(50);
+  // Second round: balances need the account list, the search needs bucket/account names.
+  const [withBalances, txList] = await Promise.all([
+    Promise.all(
+      householdAccounts.map(async (account) => ({
+        ...account,
+        balanceCents: await getAccountBalanceCents(db, householdId, account.id),
+      })),
+    ),
+    db
+      .select()
+      .from(transactions)
+      .where(
+        query
+          ? and(
+              eq(transactions.householdId, householdId),
+              or(...searchParts),
+            )
+          : eq(transactions.householdId, householdId),
+      )
+      .orderBy(desc(transactions.date), desc(transactions.createdAt))
+      .limit(50),
+  ]);
+
+  const main = withBalances.find((a) => a.isMain) ?? withBalances[0];
 
   const accountName = Object.fromEntries(
     householdAccounts.map((a) => [a.id, a.name]),

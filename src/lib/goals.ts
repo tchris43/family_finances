@@ -77,13 +77,10 @@ export async function getGoalStats(
   },
   monthKey: string = currentMonthKey(),
 ): Promise<GoalStats> {
-  const currentCents = await getGoalCurrentCents(db, householdId, goal.id);
-  const thisMonthCents = await getGoalMonthContributedCents(
-    db,
-    householdId,
-    goal.id,
-    monthKey,
-  );
+  const [currentCents, thisMonthCents] = await Promise.all([
+    getGoalCurrentCents(db, householdId, goal.id),
+    getGoalMonthContributedCents(db, householdId, goal.id, monthKey),
+  ]);
   const remainingCents = Math.max(goal.targetCents - currentCents, 0);
   const progressRatio =
     goal.targetCents > 0

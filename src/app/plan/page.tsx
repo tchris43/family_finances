@@ -19,7 +19,9 @@ import { timedPage } from "@/lib/page-timing";
 async function PlanPage() {
   const { householdId, db } = await requireSession();
   const monthKey = currentMonthKey();
-  const available = await getAvailableToAssignCents(db, householdId);
+  // Available and upcoming bills don't depend on the bucket list, so start them now.
+  const availablePromise = getAvailableToAssignCents(db, householdId);
+  const upcomingPromise = listPlannedExpensesWithCoverage(db, householdId);
 
   const [bucketList, cashflowExpenses] = await Promise.all([
     db
@@ -80,7 +82,7 @@ async function PlanPage() {
     return a.bucket.name.localeCompare(b.bucket.name);
   });
 
-  const upcoming = await listPlannedExpensesWithCoverage(db, householdId);
+  const [available, upcoming] = await Promise.all([availablePromise, upcomingPromise]);
 
   return (
     <>

@@ -22,23 +22,38 @@ export async function listPlannedExpensesWithCoverage(
   db: Db,
   householdId: string,
 ): Promise<PlannedExpenseRow[]> {
-  const expenses = await db
-    .select()
-    .from(plannedExpenses)
-    .where(eq(plannedExpenses.householdId, householdId))
-    .orderBy(asc(plannedExpenses.dueDate), asc(plannedExpenses.priority));
-
-  const bucketList = await db
-    .select()
-    .from(buckets)
-    .where(eq(buckets.householdId, householdId));
+  const [expenses, bucketList] = await Promise.all([
+    db
+      .select()
+      .from(plannedExpenses)
+      .where(eq(plannedExpenses.householdId, householdId))
+      .orderBy(asc(plannedExpenses.dueDate), asc(plannedExpenses.priority)),
+    db.select().from(buckets).where(eq(buckets.householdId, householdId)),
+  ]);
   const bucketName = Object.fromEntries(
     bucketList.map((b) => [b.id, b.name]),
   );
 
+  // Fetch each (bucket, month) pair's remaining once, all at the same time.
+  // The claiming below must stay in due-date order, but it's pure math on
+  // these numbers, so the loads don't need to wait on each other.
+  const pairs = [
+    ...new Set(
+      expenses.map((e) => `${e.bucketId}:${monthKeyFromDate(e.dueDate)}`),
+    ),
+  ];
+  const remainingCache = new Map<string, number>(
+    await Promise.all(
+      pairs.map(async (key) => {
+        const [bucketId, monthKey] = key.split(":");
+        const stats = await getBucketMonthStats(db, householdId, bucketId, monthKey);
+        return [key, stats.remainingCents] as const;
+      }),
+    ),
+  );
+
   /** Cents already claimed by earlier planned expenses in this bucket. */
   const claimedByBucket = new Map<string, number>();
-  const remainingCache = new Map<string, number>();
 
   const rows: PlannedExpenseRow[] = [];
 
@@ -46,17 +61,7 @@ export async function listPlannedExpensesWithCoverage(
     const monthKey = monthKeyFromDate(expense.dueDate);
     const cacheKey = `${expense.bucketId}:${monthKey}`;
 
-    let bucketRemainingCents = remainingCache.get(cacheKey);
-    if (bucketRemainingCents === undefined) {
-      const stats = await getBucketMonthStats(
-        db,
-        householdId,
-        expense.bucketId,
-        monthKey,
-      );
-      bucketRemainingCents = stats.remainingCents;
-      remainingCache.set(cacheKey, bucketRemainingCents);
-    }
+    const bucketRemainingCents = remainingCache.get(cacheKey) ?? 0;
 
     const claimed = claimedByBucket.get(expense.bucketId) ?? 0;
     const freeCents = bucketRemainingCents - claimed;

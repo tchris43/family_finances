@@ -57,7 +57,8 @@ export async function getAvailableToAssignCents(
   db: Db,
   householdId: string,
 ): Promise<number> {
-  const [startingRow] = await db
+  // The four sums are independent, so they run at the same time (one round trip, not four).
+  const startingQuery = db
     .select({
       total: sql<number>`coalesce(sum(${accounts.startingBalanceCents}), 0)`,
     })
@@ -70,7 +71,7 @@ export async function getAvailableToAssignCents(
     );
 
   // Income and adjustments are joined to their account so debt accounts' rows drop out.
-  const [incomeRow] = await db
+  const incomeQuery = db
     .select({
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
     })
@@ -84,7 +85,7 @@ export async function getAvailableToAssignCents(
       ),
     );
 
-  const [adjustmentRow] = await db
+  const adjustmentQuery = db
     .select({
       total: sql<number>`coalesce(sum(${transactions.amountCents}), 0)`,
     })
@@ -98,12 +99,15 @@ export async function getAvailableToAssignCents(
       ),
     );
 
-  const [assignRow] = await db
+  const assignQuery = db
     .select({
       total: sql<number>`coalesce(sum(${assignments.amountCents}), 0)`,
     })
     .from(assignments)
     .where(eq(assignments.householdId, householdId));
+
+  const [[startingRow], [incomeRow], [adjustmentRow], [assignRow]] =
+    await Promise.all([startingQuery, incomeQuery, adjustmentQuery, assignQuery]);
 
   return (
     Number(startingRow?.total ?? 0) +
@@ -214,30 +218,14 @@ export async function getBucketMonthStats(
   bucketId: string,
   monthKey: string,
 ) {
-  const assignedThrough = await getBucketAssignedThroughCents(
-    db,
-    householdId,
-    bucketId,
-    monthKey,
-  );
-  const spentThrough = await getBucketSpentThroughCents(
-    db,
-    householdId,
-    bucketId,
-    monthKey,
-  );
-  const thisMonthAssignedCents = await getBucketAssignedInMonthCents(
-    db,
-    householdId,
-    bucketId,
-    monthKey,
-  );
-  const thisMonthSpentCents = await getBucketSpentInMonthCents(
-    db,
-    householdId,
-    bucketId,
-    monthKey,
-  );
+  // Independent sums: run them at the same time.
+  const [assignedThrough, spentThrough, thisMonthAssignedCents, thisMonthSpentCents] =
+    await Promise.all([
+      getBucketAssignedThroughCents(db, householdId, bucketId, monthKey),
+      getBucketSpentThroughCents(db, householdId, bucketId, monthKey),
+      getBucketAssignedInMonthCents(db, householdId, bucketId, monthKey),
+      getBucketSpentInMonthCents(db, householdId, bucketId, monthKey),
+    ]);
   return {
     assignedCents: thisMonthAssignedCents,
     spentCents: thisMonthSpentCents,
