@@ -7,8 +7,9 @@ import { notes } from "@/db/schema";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { requireSession } from "@/lib/session";
 import { createNote } from "./actions";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function NotesPage({
+async function NotesPage({
   searchParams,
 }: {
   searchParams: Promise<{ id?: string }>;
@@ -93,3 +94,5 @@ export default async function NotesPage({
     </>
   );
 }
+
+export default timedPage("/notes", NotesPage);

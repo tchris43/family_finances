@@ -12,8 +12,9 @@ import {
   spendingByBucketByMonth,
   spendingByMonth,
 } from "@/lib/trends";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function TrendsPage() {
+async function TrendsPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
 
@@ -100,3 +101,5 @@ export default async function TrendsPage() {
     </>
   );
 }
+
+export default timedPage("/trends", TrendsPage);

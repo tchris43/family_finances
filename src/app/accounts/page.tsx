@@ -14,8 +14,9 @@ import {
 import { formatCents, todayISO } from "@/lib/money";
 import { requireSession } from "@/lib/session";
 import { adjustAccountBalance, setMainAccount } from "./actions";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function AccountsPage() {
+async function AccountsPage() {
   const { householdId, db, session, scoped } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
   const admin = await isAdminUser(session.user.id);
@@ -164,3 +165,5 @@ export default async function AccountsPage() {
     </>
   );
 }
+
+export default timedPage("/accounts", AccountsPage);

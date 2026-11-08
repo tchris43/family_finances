@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { NavTiming } from "@/components/nav-timing";
 import "./globals.css";
 
 const display = Fraunces({
@@ -45,7 +46,10 @@ export default function RootLayout({
       lang="en"
       className={`${display.variable} ${sans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <NavTiming />
+        {children}
+      </body>
     </html>
   );
 }

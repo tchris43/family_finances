@@ -3,8 +3,9 @@ import { AffordabilityCalculator } from "@/components/affordability-calculator";
 import { listGoalsWithStats } from "@/lib/goals";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { requireSession } from "@/lib/session";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function DecisionsPage() {
+async function DecisionsPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
   const goalRows = await listGoalsWithStats(db, householdId);
@@ -48,3 +49,5 @@ export default async function DecisionsPage() {
     </>
   );
 }
+
+export default timedPage("/decisions", DecisionsPage);

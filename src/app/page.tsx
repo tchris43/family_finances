@@ -23,8 +23,9 @@ import {
 } from "@/lib/ledger";
 import { formatCents } from "@/lib/money";
 import { listUpcomingPlannedExpenses } from "@/lib/planned-expenses";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function HomePage({
+async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
@@ -401,3 +402,5 @@ export default async function HomePage({
     </>
   );
 }
+
+export default timedPage("/", HomePage);

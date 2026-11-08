@@ -14,8 +14,9 @@ import { currentMonthKey, formatCents } from "@/lib/money";
 import { listPlannedExpensesWithCoverage } from "@/lib/planned-expenses";
 import { requireSession } from "@/lib/session";
 import { deletePlannedExpense } from "./planned-expense-actions";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function PlanPage() {
+async function PlanPage() {
   const { householdId, db } = await requireSession();
   const monthKey = currentMonthKey();
   const available = await getAvailableToAssignCents(db, householdId);
@@ -226,3 +227,5 @@ export default async function PlanPage() {
     </>
   );
 }
+
+export default timedPage("/plan", PlanPage);

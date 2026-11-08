@@ -14,8 +14,9 @@ import {
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/session";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function CashflowPage() {
+async function CashflowPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
 
@@ -151,3 +152,5 @@ export default async function CashflowPage() {
     </>
   );
 }
+
+export default timedPage("/cashflow", CashflowPage);

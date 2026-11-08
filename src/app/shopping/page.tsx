@@ -4,8 +4,9 @@ import { ShoppingList } from "@/components/shopping-list";
 import { shoppingItems } from "@/db/schema";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { requireSession } from "@/lib/session";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function ShoppingPage() {
+async function ShoppingPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
 
@@ -38,3 +39,5 @@ export default async function ShoppingPage() {
     </>
   );
 }
+
+export default timedPage("/shopping", ShoppingPage);

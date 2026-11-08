@@ -7,8 +7,9 @@ import { listGoalsWithStats } from "@/lib/goals";
 import { getAvailableToAssignCents } from "@/lib/ledger";
 import { currentMonthKey, formatCents } from "@/lib/money";
 import { requireSession } from "@/lib/session";
+import { timedPage } from "@/lib/page-timing";
 
-export default async function GoalsPage() {
+async function GoalsPage() {
   const { householdId, db } = await requireSession();
   const available = await getAvailableToAssignCents(db, householdId);
   const monthKey = currentMonthKey();
@@ -73,3 +74,5 @@ export default async function GoalsPage() {
     </>
   );
 }
+
+export default timedPage("/goals", GoalsPage);
